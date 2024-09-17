@@ -25,13 +25,6 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: 'Check if SQLite Database Exists'
-        run: |
-          if [ ! -f './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db' ]; then
-            echo "Error: drow_dictionary.db does not exist. Failing the build."
-            exit 1
-          fi
-
       - name: 'Generate SQLite Database'
         shell: bash
         run: |
@@ -50,6 +43,13 @@ jobs:
           .import drow_dictionary.csv drow_dictionary
           EOF
           popd
+          
+      - name: 'Check if SQLite Database Exists'
+        run: |
+          if [ ! -f './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db' ]; then
+            echo "Error: drow_dictionary.db does not exist. Failing the build."
+            exit 1
+          fi
           
       - name: 'Resolve Project Dependencies Using Dotnet'
         shell: bash
