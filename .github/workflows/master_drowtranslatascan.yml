@@ -28,7 +28,7 @@ jobs:
       - name: 'Generate SQLite Database'
         shell: bash
         run: |
-          pushd Data
+          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data'
           # Remove the old database if it exists
           rm -f drow_dictionary.db
           
@@ -50,7 +50,7 @@ jobs:
           git config --local user.email 'github-actions[bot]@users.noreply.github.com'
           
           # Add and commit the updated database file
-          git add Data\\drow_dictionary.db
+          git add './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db'
           git commit -m "Update SQLite database from CSV changes"
 
           # Push the changes back to the repository
