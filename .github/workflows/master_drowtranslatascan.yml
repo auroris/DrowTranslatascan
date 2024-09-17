@@ -50,7 +50,7 @@ jobs:
           git config --local user.email 'github-actions[bot]@users.noreply.github.com'
           
           # Add and commit the updated database file
-          git add Data\drow_dictionary.db
+          git add Data\\drow_dictionary.db
           git commit -m "Update SQLite database from CSV changes"
 
           # Push the changes back to the repository
