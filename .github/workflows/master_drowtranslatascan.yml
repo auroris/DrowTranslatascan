@@ -25,6 +25,37 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: 'Generate SQLite Database'
+        shell: bash
+        run: |
+          pushd Data
+          # Remove the old database if it exists
+          rm -f drow_dictionary.db
+          
+          # Create the new SQLite database and import the CSV
+          sqlite3 drow_dictionary.db <<EOF
+          CREATE TABLE drow_dictionary (
+            Drow   TEXT NOT NULL,
+            Common TEXT NOT NULL,
+            Notes  TEXT
+          );
+          .mode csv
+          .import drow_dictionary.csv drow_dictionary
+          EOF
+          popd
+          
+      - name: 'Commit updated SQLite database'
+        run: |
+          git config --local user.name 'github-actions[bot]'
+          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Add and commit the updated database file
+          git add drow_dictionary.db
+          git commit -m "Update SQLite database from CSV changes"
+
+          # Push the changes back to the repository
+          git push origin master
+
       - name: 'Resolve Project Dependencies Using Dotnet'
         shell: bash
         run: |
