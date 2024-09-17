@@ -25,6 +25,13 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: 'Check if SQLite Database Exists'
+        run: |
+          if [ ! -f './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db' ]; then
+            echo "Error: drow_dictionary.db does not exist. Failing the build."
+            exit 1
+          fi
+
       - name: 'Generate SQLite Database'
         shell: bash
         run: |
@@ -44,18 +51,6 @@ jobs:
           EOF
           popd
           
-      - name: 'Commit updated SQLite database'
-        run: |
-          git config --local user.name 'github-actions[bot]'
-          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Add and commit the updated database file
-          git add './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db'
-          git commit -m "Update SQLite database from CSV changes"
-
-          # Push the changes back to the repository
-          git push origin master
-
       - name: 'Resolve Project Dependencies Using Dotnet'
         shell: bash
         run: |
