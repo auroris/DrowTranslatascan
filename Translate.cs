@@ -1,29 +1,31 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Linq;
 using System.Text.RegularExpressions;
 using Humanizer; // For pluralization and singularization
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.Functions.Worker;
+using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 
 namespace DrowTranslatascan
 {
-    public static class TranslateFunction
+    public class TranslateFunction
     {
-        [FunctionName("Translate")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-            ILogger log,
-            ExecutionContext context)
+        private readonly ILogger _logger;
+
+        public TranslateFunction(ILoggerFactory loggerFactory)
         {
-            string text = req.Query["text"];
-            string lang = req.Query["lang"];
+            _logger = loggerFactory.CreateLogger<TranslateFunction>();
+        }
+
+        [Function("Translate")]
+        public async Task<HttpResponseData> Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req,
+            FunctionContext executionContext)
+        {
+            _logger.LogInformation("Processing request.");
+            string? text = req.Query["text"];
+            string? lang = req.Query["lang"];
+            string? ver = req.Query["ver"];
 
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(lang))
             {
@@ -40,9 +42,20 @@ namespace DrowTranslatascan
                 }
             }
 
+            HttpResponseData response;
+
+            if (!string.IsNullOrEmpty(ver))
+            {
+                response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+                await response.WriteStringAsync("Welcome to Drow Translatascan.");
+                return response;
+            }
+
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(lang))
             {
-                return new BadRequestObjectResult("Please provide 'text' and 'lang' parameters.");
+                response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                await response.WriteStringAsync("Please provide 'text' and 'lang' parameters.");
+                return response;
             }
 
             // The languages
@@ -51,12 +64,14 @@ namespace DrowTranslatascan
 
             if (lang != LANG0 && lang != LANG1)
             {
-                return new BadRequestObjectResult($"Invalid language id: {lang}");
+                response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                await response.WriteStringAsync($"Invalid language id: {lang}");
+                return response;
             }
 
             // Perform the translation
             string result;
-            string dbPath = Path.Combine(context.FunctionAppDirectory, "Data", "drow_dictionary.db");
+            string dbPath = Path.Combine(Environment.CurrentDirectory, "Data", "drow_dictionary.db");
             using (SQLiteConnection connection = new SQLiteConnection($"Data Source={dbPath};Version=3;Read Only=True;"))
             {
                 connection.Open();
@@ -64,12 +79,10 @@ namespace DrowTranslatascan
             }
 
             // Return the translated text as plain text
-            return new ContentResult
-            {
-                Content = result,
-                ContentType = "text/plain",
-                StatusCode = 200
-            };
+            response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            req.Headers.Add("Content-Type", "text/plain");
+            await response.WriteStringAsync(result);
+            return response;
         }
 
         static string DoTranslation(string text, string langTo, string langFrom, SQLiteConnection connection)
@@ -279,20 +292,20 @@ namespace DrowTranslatascan
             string wordLower = word.ToLower();
 
             // Lookup in database
-                string query = $"SELECT {langTo}, Notes FROM drow_dictionary WHERE {langFrom} = @word";
-                using (var command = new SQLiteCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@word", wordLower);
+            string query = $"SELECT {langTo}, Notes FROM drow_dictionary WHERE {langFrom} = @word";
+            using (var command = new SQLiteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@word", wordLower);
 
-                    using (var reader = command.ExecuteReader())
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
                     {
-                        if (reader.Read())
-                        {
-                            translation = reader.GetString(0);
-                            notes = !reader.IsDBNull(1) ? reader.GetString(1) : "";
-                        }
+                        translation = reader.GetString(0);
+                        notes = !reader.IsDBNull(1) ? reader.GetString(1) : "";
                     }
                 }
+            }
 
             // Restore capitalization
             if (!string.IsNullOrEmpty(translation))

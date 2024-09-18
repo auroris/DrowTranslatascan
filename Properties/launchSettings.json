@@ -2,7 +2,8 @@
   "profiles": {
     "DrowTranslatascan": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7023 --csharp"
+      "commandLineArgs": "--port 7000",
+      "launchBrowser": false
     }
   }
 }
