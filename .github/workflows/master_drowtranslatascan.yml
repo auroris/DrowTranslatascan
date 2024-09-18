@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Publish Drow Translatascan
+name: Build and deploy dotnet core project to Azure Function App - drowtranslatascan
 
 on:
   push:
@@ -21,36 +21,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: 'Generate SQLite Database'
-        shell: bash
-        run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data'
-          # Remove the old database if it exists
-          rm -f drow_dictionary.db
-          
-          # Create the new SQLite database and import the CSV
-          sqlite3 drow_dictionary.db <<EOF
-          CREATE TABLE drow_dictionary (
-            Drow   TEXT NOT NULL,
-            Common TEXT NOT NULL,
-            Notes  TEXT
-          );
-          .mode csv
-          .import drow_dictionary.csv drow_dictionary
-          EOF
-          popd
-          
-      - name: 'Check if SQLite Database Exists'
-        run: |
-          if [ ! -f './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db' ]; then
-            echo "Error: drow_dictionary.db does not exist. Failing the build."
-            exit 1
-          fi
-          
       - name: 'Resolve Project Dependencies Using Dotnet'
         shell: bash
         run: |
@@ -65,4 +39,4 @@ jobs:
           app-name: 'drowtranslatascan'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_008E41BB37364248AB4CB87C58D3BDC9 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_B1CEADB0F2B84928B07615F4AADF19F8 }}
