@@ -71,11 +71,21 @@ namespace DrowTranslatascan
 
             // Perform the translation
             string result;
-            string dbPath = Path.Combine(Environment.CurrentDirectory, "Data", "drow_dictionary.db");
-            using (SQLiteConnection connection = new SQLiteConnection($"Data Source={dbPath};Version=3;Read Only=True;"))
+
+            try
             {
-                connection.Open();
-                result = DoTranslation(text, lang == LANG0 ? LANG0 : LANG1, lang == LANG0 ? LANG1 : LANG0, connection);
+                using (SQLiteConnection connection = new SQLiteConnection($"Data Source={Program.DbPath};Version=3;Read Only=True;"))
+                {
+                    connection.Open();
+                    result = DoTranslation(text, lang == LANG0 ? LANG0 : LANG1, lang == LANG0 ? LANG1 : LANG0, connection);
+                }
+            } 
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+                await response.WriteStringAsync(ex.ToString());
+                return response;
             }
 
             // Return the translated text as plain text
