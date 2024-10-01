@@ -11,7 +11,7 @@ An Azure Function that translates text between English (Common) and the Drow lan
 
 ## Prerequisites
 
-- **.NET Core SDK** (version 3.1 or later)
+- **.NET Core SDK** (version 8 or later)
 - **Azure Functions Core Tools** (for local development and testing)
 - **SQLite** (to manage the database file)
 - **NuGet Packages**:
