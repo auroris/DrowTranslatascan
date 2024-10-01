@@ -1,6 +1,6 @@
 # Drow Translator Azure Function
 
-An Azure Function that translates text between English (Common) and the Drow language. This project is a C# adaptation of a 2003 Perl script by Brian Sidharta, focusing on translating English to Drow and vice versa using an SQLite database for the word list.
+An Azure Function that translates text between English (Common) and the Drow language. This project is inspired by a 2003 Perl script by Brian Sidharta, focusing on translating English to Drow and vice versa using an SQLite database for the word list.
 
 ## Features
 
@@ -55,11 +55,17 @@ You can send HTTP POST requests to the function endpoint to translate text.
 
 #### Example Request
 
+Dev example:
+
 ```bash
 curl -X POST "http://localhost:7071/api/Translate" \
      -H "Content-Type: application/x-www-form-urlencoded" \
      -d "text=Hello, how are you?&lang=Drow"
 ```
+
+Live example:
+
+`https://drowtranslatascan.azurewebsites.net/api/Translate?text=Hello,%20how%20are%20you?&lang=Drow`
 
 #### Parameters
 
