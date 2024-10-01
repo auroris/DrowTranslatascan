@@ -1,6 +1,6 @@
 using System.Data.SQLite;
 using System.Text.RegularExpressions;
-using Humanizer; // For pluralization and singularization
+using Humanizer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker;
@@ -11,6 +11,8 @@ namespace DrowTranslatascan
     public class TranslateFunction
     {
         private readonly ILogger _logger;
+        private const string Common = "Common";
+        private const string Drow = "Drow";
 
         public TranslateFunction(ILoggerFactory loggerFactory)
         {
@@ -58,11 +60,7 @@ namespace DrowTranslatascan
                 return response;
             }
 
-            // The languages
-            const string LANG0 = "Drow";
-            const string LANG1 = "Common";
-
-            if (lang != LANG0 && lang != LANG1)
+            if (lang != Drow && lang != Common)
             {
                 response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
                 await response.WriteStringAsync($"Invalid language id: {lang}");
@@ -77,7 +75,7 @@ namespace DrowTranslatascan
                 using (SQLiteConnection connection = new SQLiteConnection($"Data Source={Program.DbPath};Version=3;Read Only=True;"))
                 {
                     connection.Open();
-                    result = DoTranslation(text, lang == LANG0 ? LANG0 : LANG1, lang == LANG0 ? LANG1 : LANG0, connection);
+                    result = DoTranslation(text, lang == Drow ? Drow : Common, lang == Drow ? Common : Drow, connection);
                 }
             } 
             catch (Exception ex)
@@ -160,6 +158,13 @@ namespace DrowTranslatascan
                     translated = TryWordForms(token, langTo, langFrom, results, connection);
                 }
 
+                if (!translated && langTo == Drow)
+                {
+                    // Attempt at algorithmic conversion of English to Drow
+                    results.Add(AlgorithmicConverter.ConvertToDrow(tokens[i]));
+                    translated = true;
+                } 
+                
                 if (!translated)
                 {
                     // Could not translate
@@ -361,7 +366,7 @@ namespace DrowTranslatascan
         {
             List<string> forms = new List<string>();
 
-            if (langFrom == "Drow")
+            if (langFrom == Drow)
             {
                 if (word.EndsWith("n"))
                     forms.Add(word.Substring(0, word.Length - 1));
@@ -381,7 +386,7 @@ namespace DrowTranslatascan
 
         static string Pluralize(string word, string langTo)
         {
-            if (langTo == "Drow")
+            if (langTo == Drow)
             {
                 // Drow pluralization
                 if (Regex.IsMatch(word, @"[aeiou]$", RegexOptions.IgnoreCase))
@@ -402,7 +407,7 @@ namespace DrowTranslatascan
 
         static List<string> SplitContraction(string word, string langFrom)
         {
-            if (langFrom == "Common")
+            if (langFrom == Common)
             {
                 string[] suffixes = { "'d", "'ve", "n't", "'ll", "'re", "'m", "'s" };
                 string[] expansions = { "would", "have", "not", "will", "are", "am", "is" };

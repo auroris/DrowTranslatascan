@@ -1,0 +1,16 @@
+﻿Push-Location './Data'
+# Remove the old database if it exists
+Remove-Item -Force drow_dictionary.db
+
+# Create the new SQLite database and import the CSV
+@"
+CREATE TABLE drow_dictionary (
+    Drow   TEXT NOT NULL,
+    Common TEXT NOT NULL,
+    Notes  TEXT
+);
+.mode csv
+.import drow_dictionary.csv drow_dictionary
+"@ | sqlite3 drow_dictionary.db
+
+Pop-Location

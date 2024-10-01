@@ -90,9 +90,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ### Word List
 
-The Drow word list included in this project is licensed under **Tel'Mithrim/Brian Sidharta's Software License Version 1.0**. See [WORDLIST_LICENSE](WORDLIST_LICENSE) for details.
-
-> "This product includes software developed by Tel'Mithrim (http://www.grey-company.org/)."
+The Drow word list included in this project is licensed under **Tel'Mithrim/Brian Sidharta's Software License Version 1.0**. See WORDLIST_LICENSE.md for details.
 
 ## Acknowledgments
 

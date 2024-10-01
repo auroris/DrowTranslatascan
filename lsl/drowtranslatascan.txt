@@ -1,0 +1,218 @@
+﻿// Drow Translatascan
+// Copyright (C) 2006-2024 Aleena Yoshiro (aleena@auroris.net)
+// Contributors: Melreen Fuhr.
+// Based on databases provided by the Grey Company and the Chosen of Eilistraee.
+// This product also includes software developed by Tel'Mithrim.
+
+// Redistribution is allowed but not for sale.
+// For the latest version and more information, visit:
+// https://marketplace.secondlife.com/p/Drow-Translatascan-Language-Translator/62730
+// https://github.com/auroris/DrowTranslatascan
+
+// --- CHANNEL DEFINITIONS ---
+// Communication channels used by the script. These can be overridden by defining them in the object description.
+integer drowChannel = 1; // Channel for translating English to Drow
+integer oocChannel = 2;  // Channel for Out-of-Character messages
+integer engChannel = 3;  // Channel for translating Drow to English
+string masqueradeName = ""; // Custom name used for object communication, overriding the default owner name
+
+// --- CONSTANTS ---
+// URLs, versioning, and other constant definitions
+string API_URI = "https://drowtranslatascan.azurewebsites.net/api/Translate?";
+string VERSION = "H";
+integer TRANS_CHANNEL = -90; // Channel used internally for communication between script instances
+
+// --- STATE VARIABLES ---
+// Variables to keep track of language settings, owner's name, and object's original name
+string language; 
+string ownerName;
+string objectName;
+
+// --- HELPER FUNCTIONS ---
+// These functions provide reusable actions to avoid code repetition
+
+// Initiates a translation request to the API for the given message
+translateMessage(string targetLanguage, string message)
+{
+    language = targetLanguage;
+    string formattedMessage = llDumpList2String(llParseString2List(message, [" "], []), "+");
+    llHTTPRequest(API_URI + "lang=" + language + "&text=" + formattedMessage, [HTTP_METHOD, "GET"], "");
+
+    // If translating to Drow, relay the message using the appropriate communication channel
+    if (targetLanguage == "Drow")
+    {
+        llSetObjectName(ownerName);
+        llSay(TRANS_CHANNEL, message);
+        llSetObjectName(objectName);
+    }
+}
+
+// Temporarily change the object's name for use in a chat message
+setTemporaryObjectName(string newName)
+{
+    llSetObjectName(newName);
+}
+
+// Resets the object's name to its original value
+resetObjectName()
+{
+    llSetObjectName(objectName);
+}
+
+// --- MAIN PROGRAM ---
+default
+{
+    state_entry()
+    {
+        // Override channel settings based on object description
+        // If the initial channel values haven't changed, try reading them from the object description
+        if (drowChannel == 1 && oocChannel == 2 && engChannel == 3)
+        {
+            list desc = llParseString2List(llGetObjectDesc(), [":", "/", " ", ",", "|", ";"], []);
+            if (llGetListLength(desc) >= 3 &&
+                llList2Integer(desc, 0) != 0 && llList2Integer(desc, 1) != 0 && llList2Integer(desc, 2) != 0)
+            {
+                drowChannel = llList2Integer(desc, 0);
+                engChannel = llList2Integer(desc, 1);
+                oocChannel = llList2Integer(desc, 2);
+            }
+        }
+
+        // Set up listeners on the defined channels
+        llListen(drowChannel, "", llGetOwner(), ""); // Listen for English -> Drow translation commands
+        llListen(engChannel, "", llGetOwner(), "");  // Listen for Drow -> English translation commands
+        llListen(oocChannel, "", llGetOwner(), "");  // Listen for OOC messages
+        llListen(TRANS_CHANNEL, "", NULL_KEY, "");   // Listen for translation relays from any user
+
+        // Inform the owner of the available commands
+        llOwnerSay("Use /" + (string)drowChannel + " to translate English to Drow. Use /" + (string)oocChannel + " for out-of-character speech. Use /" + (string)engChannel + " to translate Drow to English. Say 'reset' on any channel to reset.");
+
+        // Check for the latest version of the script
+        language = "Common";
+        llHTTPRequest(API_URI + "ver=" + VERSION, [HTTP_METHOD, "GET"], "");
+
+        // Set owner name or masquerade name if provided
+        if (masqueradeName == "")
+        {
+            ownerName = llKey2Name(llGetOwner());
+        }
+        else
+        {
+            ownerName = masqueradeName;
+        }
+        
+        // Store the original name of the object
+        objectName = llGetObjectName();
+    }
+
+    // Reset the script if the object's ownership changes
+    changed(integer change)
+    {
+        if (change & CHANGED_OWNER)
+        {
+            llResetScript();
+        }
+    }
+
+    // Reset the script if the object is attached or detached
+    attach(key attached)
+    {
+        if (attached)
+        {
+            llResetScript();
+        }
+    }
+
+    // Handle messages received on the configured channels
+    listen(integer channel, string name, key id, string message)
+    {
+        // Ignore empty messages
+        if (llStringTrim(message, STRING_TRIM) == "")
+        {
+            return;
+        }
+
+        // Reset the script if requested
+        if (message == "reset")
+        {
+            llResetScript();
+            return;
+        }
+
+        // Handle translation commands based on the channel received
+        if (channel == drowChannel)
+        {
+            // Translate from English to Drow
+            translateMessage("Drow", message);
+        }
+        else if (channel == engChannel)
+        {
+            // Translate from Drow to English
+            translateMessage("Common", message);
+        }
+        else if (channel == oocChannel)
+        {
+            // Handle Out-of-Character messages by changing the object's name temporarily
+            setTemporaryObjectName(name + " (OOC)");
+            llSay(0, message);
+            resetObjectName();
+        }
+        else
+        {
+            // Relay any other type of message back to the owner with the sender's name
+            setTemporaryObjectName(name);
+            llOwnerSay(message);
+            resetObjectName();
+        }
+    }
+
+    // Handle responses from the HTTP requests
+    http_response(key request_id, integer status, list metadata, string body)
+    {
+        if (status == 200)
+        {
+            // Successful translation response
+            if (language == "Drow")
+            {
+                // Handle Drow translation by speaking the translated message publicly
+                setTemporaryObjectName(ownerName);
+                llSay(0, body);
+                resetObjectName();
+            }
+            else if (language == "Common")
+            {
+                // Handle English translation by sending the message privately to the owner
+                setTemporaryObjectName(ownerName);
+                llOwnerSay(body);
+                resetObjectName();
+            }
+            else
+            {
+                // Generic response
+                llOwnerSay(body);
+            }
+        }
+        else
+        {
+            // Handle errors from the HTTP request
+            string errorMessage;
+            if (status == 404)
+            {
+                errorMessage = "Translation server could not locate the translation software. This may indicate a change in server location. Please contact Aleena Yoshiro.";
+            }
+            else if (status == 500)
+            {
+                errorMessage = "The translation server encountered an error. Please contact Aleena Yoshiro.";
+            }
+            else if (status == 499)
+            {
+                errorMessage = "The translation server is offline due to hardware or ISP issues. Aleena Yoshiro might already be aware, but please send a message.";
+            }
+            else
+            {
+                errorMessage = "Unknown Error #" + (string)status + ". Please contact Aleena Yoshiro.";
+            }
+            llOwnerSay(errorMessage);
+        }
+    }
+}
