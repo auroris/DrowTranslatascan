@@ -11,11 +11,15 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  DOTNET_VERSION: '8.0.x' # set this to the dotnet version to use
+  DOTNET_VERSION: '10.0.x' # set this to the dotnet version to use
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
     steps:
       - name: 'Checkout GitHub Action'
         uses: actions/checkout@v4
@@ -24,32 +28,6 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          
-      - name: 'Generate SQLite Database'
-        shell: bash
-        run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data'
-          # Remove the old database if it exists
-          rm -f drow_dictionary.db
-          
-          # Create the new SQLite database and import the CSV
-          sqlite3 drow_dictionary.db <<EOF
-          CREATE TABLE drow_dictionary (
-            Drow   TEXT NOT NULL,
-            Common TEXT NOT NULL,
-            Notes  TEXT
-          );
-          .mode csv
-          .import drow_dictionary.csv drow_dictionary
-          EOF
-          popd
-          
-      - name: 'Check if SQLite Database Exists'
-        run: |
-          if [ ! -f './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/Data/drow_dictionary.db' ]; then
-            echo "Error: drow_dictionary.db does not exist. Failing the build."
-            exit 1
-          fi
 
       - name: 'Resolve Project Dependencies Using Dotnet'
         shell: bash
@@ -57,6 +35,13 @@ jobs:
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
           dotnet build --configuration Release --output ./output
           popd
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F63E6136B7884FA298A48B465942746C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BEC2B63489E84A338EAB51BA234BB57E }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_32E7121E777947E3AF79051102E94DC3 }}
 
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
@@ -65,4 +50,4 @@ jobs:
           app-name: 'drowtranslatascan'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_B1CEADB0F2B84928B07615F4AADF19F8 }}
+          
