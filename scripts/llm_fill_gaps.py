@@ -103,11 +103,22 @@ def pop_queue(queue_path: Path, n: int) -> tuple[list[str], int]:
     return batch, len(remaining)
 
 
+def is_likely_plural(word: str, seen: set[str]) -> bool:
+    """Return True if word looks like a plural whose singular is already queued
+    or covered.  Handles the common English plural patterns."""
+    if word.endswith("s"):
+        for singular in (word[:-1], word[:-2] if word.endswith("es") else None):
+            if singular and singular in seen:
+                return True
+    return False
+
+
 def populate_queue(queue_path: Path, covered: set[str], freq_url: str, size: int) -> int:
-    """Fetch the Norvig frequency list, filter already-covered words, and write
-    the queue file.  Returns the number of words stored."""
+    """Fetch the Norvig frequency list, filter already-covered words and likely
+    plurals, and write the queue file.  Returns the number of words stored."""
     print(f"Fetching word-frequency list from {freq_url} ...")
     queue: list[str] = []
+    queued_set: set[str] = set(covered)  # used for plural-dedup check
     with urllib.request.urlopen(freq_url) as resp:
         for line in resp:
             parts = line.decode().rstrip().split("\t")
@@ -116,8 +127,12 @@ def populate_queue(queue_path: Path, covered: set[str], freq_url: str, size: int
             word = parts[0].lower()
             if len(word) < MIN_WORD_LEN:
                 continue
-            if word not in covered:
-                queue.append(word)
+            if word in covered:
+                continue
+            if is_likely_plural(word, queued_set):
+                continue
+            queue.append(word)
+            queued_set.add(word)
             if len(queue) == size:
                 break
     save_queue(queue_path, queue)
@@ -138,8 +153,10 @@ to the phonological patterns of the corpus."""
 _OUTPUT_FORMAT = """\
 Return ONLY a fenced CSV block (no other text).  Three columns:
   english, drow, notes
-All values lowercase.  Notes: one short phrase explaining the word's
-meaning or derivation strategy (10 words max).  Example:
+All values lowercase.  The english column must always use the singular form
+of the word (e.g. "picture" not "pictures", "wolf" not "wolves").  Notes:
+one short phrase explaining the word's meaning or derivation strategy
+(10 words max).  Example:
 
 ```csv
 english,drow,notes
