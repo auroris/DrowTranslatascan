@@ -88,6 +88,11 @@ Deploy the Azure Function to your Azure account using your preferred deployment 
 
 Ensure that the `Data` folder and the `drow_dictionary.db` file are included in your deployment package.
 
+## Repository Structure
+
+- `Data/` — working dictionary (`drow_dictionary.csv` + generated `drow_dictionary.db`). This is a modified and extended version of the original word list.
+- `tel'mithrim/` — the original, unmodified Tel'Mithrim word list and its license, preserved for attribution and provenance.
+
 ## License
 
 ### Code
@@ -96,11 +101,11 @@ This project is licensed under the [MIT License](LICENSE).
 
 ### Word List
 
-The Drow word list included in this project is licensed under **Tel'Mithrim/Brian Sidharta's Software License Version 1.0**. See WORDLIST_LICENSE.md for details.
+The original Drow word list is by Tel'Mithrim/Brian Sidharta and is licensed under **Tel'Mithrim/Brian Sidharta's Software License Version 1.0**. The unmodified original is preserved in [`tel'mithrim/`](tel'mithrim/WORDLIST_LICENSE.md). The version in `Data/` is a derivative work distributed under the same license terms.
 
 ## Acknowledgments
 
-- **Tel'Mithrim/The Grey Company and Brian Sidharta**: For developing the original Drow dictionary and Perl script.
+- **Tel'Mithrim/The Grey Company and Brian Sidharta**: For developing the original Drow dictionary and Perl script. See [`tel'mithrim/WORDLIST_LICENSE.md`](tel'mithrim/WORDLIST_LICENSE.md).
 - **Humanizer Library**: For providing pluralization and singularization utilities.
 
 ## Contributing
