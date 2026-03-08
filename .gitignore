@@ -262,3 +262,5 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+# Local word queue cache (llm_fill_gaps.py)
+scripts/word_queue.txt

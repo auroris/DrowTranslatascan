@@ -8,6 +8,8 @@ rebuilds the SQLite database.
 
 Usage:
     python3 scripts/llm_fill_gaps.py [--want N] [--samples N] [--dry-run]
+    python3 scripts/llm_fill_gaps.py --topic "months of the year" [--dry-run]
+    python3 scripts/llm_fill_gaps.py --refresh-queue
 
 Requires:
     Claude CLI installed and authenticated (i.e. `claude` is on your PATH).
@@ -26,17 +28,19 @@ import urllib.request
 from pathlib import Path
 
 #  Paths (relative to repo root)
-REPO_ROOT       = Path(__file__).parent.parent
-CSV_PATH        = REPO_ROOT / "Data" / "drow_dictionary.csv"
-DB_PATH         = REPO_ROOT / "Data" / "drow_dictionary.db"
-CORPUS_FILE     = REPO_ROOT / "analysis" / "corpus_analysis.txt"
-PHONEME_FILE    = REPO_ROOT / "analysis" / "phoneme_pairs.txt"
+REPO_ROOT    = Path(__file__).parent.parent
+CSV_PATH     = REPO_ROOT / "Data" / "drow_dictionary.csv"
+DB_PATH      = REPO_ROOT / "Data" / "drow_dictionary.db"
+CORPUS_FILE  = REPO_ROOT / "analysis" / "corpus_analysis.txt"
+PHONEME_FILE = REPO_ROOT / "analysis" / "phoneme_pairs.txt"
+QUEUE_PATH   = Path(__file__).parent / "word_queue.txt"
 
-#  Defaults 
-FREQ_URL        = "https://norvig.com/ngrams/count_1w.txt"
-DEFAULT_WANT    = 30    # missing words to request per run
-DEFAULT_SAMPLES = 80    # existing pairs shown to LLM as examples
-MIN_WORD_LEN    = 3
+#  Defaults
+FREQ_URL          = "https://norvig.com/ngrams/count_1w.txt"
+DEFAULT_WANT      = 100   # words to pull from queue per run
+DEFAULT_SAMPLES   = 80    # existing pairs shown to LLM as examples
+QUEUE_REFILL_SIZE = 2000  # words to cache when populating the queue
+MIN_WORD_LEN      = 3
 
 
 #  Dictionary helpers
@@ -59,25 +63,6 @@ def load_csv_pairs(csv_path: Path) -> list[tuple[str, str, str]]:
         return list(csv.reader(f))
 
 
-def find_missing_words(covered: set[str], want: int) -> list[tuple[int, str]]:
-    """Fetch Norvig frequency list, return (rank, word) for words not in covered."""
-    print(f"Fetching word-frequency list from {FREQ_URL} …")
-    missing: list[tuple[int, str]] = []
-    with urllib.request.urlopen(FREQ_URL) as resp:
-        for rank, line in enumerate(resp, start=1):
-            parts = line.decode().rstrip().split("\t")
-            if len(parts) != 2:
-                continue
-            word = parts[0].lower()
-            if len(word) < MIN_WORD_LEN:
-                continue
-            if word not in covered:
-                missing.append((rank, word))
-            if len(missing) == want:
-                break
-    return missing
-
-
 def sample_pairs(csv_path: Path, n: int) -> list[tuple[str, str]]:
     """Return n random (common, drow) pairs from the CSV as examples."""
     rows = load_csv_pairs(csv_path)
@@ -90,7 +75,53 @@ def read_file_truncated(path: Path, max_chars: int = 4000) -> str:
     text = path.read_text(encoding="utf-8")
     if len(text) <= max_chars:
         return text
-    return text[:max_chars] + f"\n… [truncated at {max_chars} chars]"
+    return text[:max_chars] + f"\n... [truncated at {max_chars} chars]"
+
+
+#  Word queue (FIFO cache of frequency-ranked English words)
+
+def load_queue(queue_path: Path) -> list[str]:
+    """Return the current queue as an ordered list of words."""
+    if not queue_path.exists():
+        return []
+    return [w for w in queue_path.read_text(encoding="utf-8").splitlines() if w.strip()]
+
+
+def save_queue(queue_path: Path, words: list[str]) -> None:
+    queue_path.write_text("\n".join(words) + ("\n" if words else ""), encoding="utf-8")
+
+
+def pop_queue(queue_path: Path, n: int) -> tuple[list[str], int]:
+    """Remove and return the first n words from the queue.
+
+    Returns (batch, words_remaining_after_pop).
+    """
+    words = load_queue(queue_path)
+    batch = words[:n]
+    remaining = words[n:]
+    save_queue(queue_path, remaining)
+    return batch, len(remaining)
+
+
+def populate_queue(queue_path: Path, covered: set[str], freq_url: str, size: int) -> int:
+    """Fetch the Norvig frequency list, filter already-covered words, and write
+    the queue file.  Returns the number of words stored."""
+    print(f"Fetching word-frequency list from {freq_url} ...")
+    queue: list[str] = []
+    with urllib.request.urlopen(freq_url) as resp:
+        for line in resp:
+            parts = line.decode().rstrip().split("\t")
+            if len(parts) != 2:
+                continue
+            word = parts[0].lower()
+            if len(word) < MIN_WORD_LEN:
+                continue
+            if word not in covered:
+                queue.append(word)
+            if len(queue) == size:
+                break
+    save_queue(queue_path, queue)
+    return len(queue)
 
 
 #  Prompt construction
@@ -124,18 +155,10 @@ def _shared_context(
     examples: list[tuple[str, str]],
     corpus_text: str,
     phoneme_text: str,
-    brief_words: bool,
 ) -> str:
     """Render the corpus/examples/guidelines block shared by both prompt types."""
     example_lines = "\n".join(
         f"  {common:<25} - {drow}" for common, drow in examples
-    )
-    brevity_line = (
-        "• These are high-frequency words — prefer short Drow forms (2-7 letters)\n"
-        "        • Drow words average ~12 % more letters than English equivalents, but for\n"
-        "          common words brevity is more important than that average"
-        if brief_words else
-        "• Drow words average ~12 % more letters than English equivalents"
     )
     return f"""\
         -
@@ -164,7 +187,9 @@ def _shared_context(
         • Vowel digraphs characteristic of Drow: au, ae, ii, ua, ue, ui, ei, ia
         • Double consonants: ss, rr, qu, zz, nn are common
         • Apostrophes at VC'V boundaries in ~30 % of words (e.g. khal'inth, z'hind)
-        {brevity_line}
+        • Prefer short Drow forms (2-7 letters); resist the urge to make words longer
+        • Drow words average ~12 % more letters than English equivalents, but
+          brevity is more important than following that average
         • Common endings: -ith, -ath, -el, -al, -in, -ar, -ul, -an, -ess
         • Common prefixes: vel-, uss-, nil-, khal-, rin-, elg-, hal-, nar-
         • Avoid Common-language patterns: -ing, -tion, -ed, -er, -ness
@@ -172,13 +197,13 @@ def _shared_context(
 
 
 def build_prompt(
-    missing: list[tuple[int, str]],
+    candidates: list[str],
     examples: list[tuple[str, str]],
     corpus_text: str,
     phoneme_text: str,
 ) -> str:
-    missing_list = "\n".join(f"  {rank:>6}  {word}" for rank, word in missing)
-    context = _shared_context(examples, corpus_text, phoneme_text, brief_words=True)
+    word_list = "\n".join(f"  {w}" for w in candidates)
+    context = _shared_context(examples, corpus_text, phoneme_text)
 
     return textwrap.dedent(f"""
         {_PREAMBLE}
@@ -186,11 +211,15 @@ def build_prompt(
         {context}
 
         -
-        ENGLISH WORDS TO TRANSLATE (missing from the dictionary)
+        CANDIDATE ENGLISH WORDS
         -
-         Rank   Word
-        ------  ----
-        {missing_list}
+        The list below was drawn from a general English frequency list and may include
+        modern or anachronistic words (e.g. "computer", "email", "website") that have
+        no place in a fantasy setting.  Simply omit any such word from your output --
+        the app has an algorithmic fallback for modern vocabulary.  Translate only the
+        words that are natural in a pre-modern fantasy context.
+
+        {word_list}
 
         -
         OUTPUT FORMAT
@@ -207,7 +236,7 @@ def build_topic_prompt(
     covered_common: set[str],
 ) -> str:
     already = ", ".join(sorted(covered_common)[:300])  # cap to keep prompt size sane
-    context = _shared_context(examples, corpus_text, phoneme_text, brief_words=False)
+    context = _shared_context(examples, corpus_text, phoneme_text)
 
     return textwrap.dedent(f"""
         {_PREAMBLE}
@@ -230,13 +259,12 @@ def build_topic_prompt(
     """).strip()
 
 
-#  Response parsing 
+#  Response parsing
 
 def parse_llm_csv(text: str) -> list[tuple[str, str, str]]:
     """Extract and parse the CSV block from the LLM response."""
     match = re.search(r"```csv\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
     if not match:
-        # Fall back: try to find a bare CSV block
         match = re.search(r"(english,drow,notes\n.*)", text, re.DOTALL | re.IGNORECASE)
     if not match:
         sys.exit(
@@ -255,15 +283,15 @@ def parse_llm_csv(text: str) -> list[tuple[str, str, str]]:
     return rows
 
 
-#  Collision checking 
+#  Collision checking
 
 def collision_check(
     proposed: list[tuple[str, str, str]],
     covered_common: set[str],
     covered_drow:   set[str],
 ) -> tuple[list[tuple[str, str, str]], list[str]]:
-    """
-    Split proposed rows into (accepted, skipped_reasons).
+    """Split proposed rows into (accepted, skipped_reasons).
+
     Skips if the English word is already covered OR the Drow word is already used.
     Deduplicates within the proposed list itself.
     """
@@ -274,9 +302,9 @@ def collision_check(
 
     for english, drow, notes in proposed:
         if english in seen_english:
-            skipped.append(f"  SKIP  {english:<25} — English already covered")
+            skipped.append(f"  SKIP  {english:<25} - English already covered")
         elif drow in seen_drow:
-            skipped.append(f"  SKIP  {english:<25} - {drow}  — Drow collision")
+            skipped.append(f"  SKIP  {english:<25} - {drow}  - Drow collision")
         else:
             accepted.append((english, drow, notes))
             seen_drow.add(drow)
@@ -285,7 +313,7 @@ def collision_check(
     return accepted, skipped
 
 
-#  Patching 
+#  Patching
 
 def append_to_csv(rows: list[tuple[str, str, str]], csv_path: Path) -> None:
     """Append (english, drow, notes) rows to the CSV as (drow, english, notes)."""
@@ -312,13 +340,13 @@ def rebuild_db(csv_path: Path, db_path: Path) -> int:
     return count
 
 
-#  Main 
+#  Main
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--want", type=int, default=DEFAULT_WANT,
-        help=f"Number of missing words to fill (default: {DEFAULT_WANT})",
+        help=f"Words to pull from the queue per run (default: {DEFAULT_WANT})",
     )
     parser.add_argument(
         "--samples", type=int, default=DEFAULT_SAMPLES,
@@ -326,7 +354,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--topic",
-        help='Generate words for a topic instead of the frequency list (e.g. "months of the year")',
+        help='Generate words for a topic instead of the queue (e.g. "months of the year")',
+    )
+    parser.add_argument(
+        "--refresh-queue", action="store_true",
+        help="Re-fetch the frequency list and repopulate the local word queue, then exit",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -338,30 +370,47 @@ def main() -> None:
         sys.exit("ERROR: 'claude' CLI not found on PATH. Install Claude Code and log in.")
 
     # 1. Load current dictionary state
-    print(f"Loading dictionary from {DB_PATH} …")
+    print(f"Loading dictionary from {DB_PATH} ...")
     covered_common, covered_drow = load_db(DB_PATH)
     print(f"  {len(covered_common):,} Common tokens, {len(covered_drow):,} Drow words\n")
 
-    # 2. Find words to translate
+    # 2. Handle --refresh-queue
+    if args.refresh_queue:
+        count = populate_queue(QUEUE_PATH, covered_common, FREQ_URL, QUEUE_REFILL_SIZE)
+        print(f"Queue repopulated: {count} words written to {QUEUE_PATH}")
+        return
+
+    # 3. Load shared context
     examples     = sample_pairs(CSV_PATH, args.samples)
     corpus_text  = read_file_truncated(CORPUS_FILE)
     phoneme_text = read_file_truncated(PHONEME_FILE, max_chars=2000)
 
+    # 4. Build prompt
     if args.topic:
         print(f"Topic mode: \"{args.topic}\"\n")
         prompt = build_topic_prompt(
             args.topic, examples, corpus_text, phoneme_text, covered_common
         )
-        print("Calling Claude CLI to generate topic words …\n")
+        print("Calling Claude CLI to generate topic words ...\n")
     else:
-        missing = find_missing_words(covered_common, args.want)
-        if not missing:
-            print("No missing words found — dictionary is up to date.")
-            return
-        print(f"\nFound {len(missing)} missing words.\n")
-        prompt = build_prompt(missing, examples, corpus_text, phoneme_text)
-        print(f"Calling Claude CLI to generate {len(missing)} Drow translations …\n")
+        # Populate queue on first run or if exhausted
+        queue = load_queue(QUEUE_PATH)
+        if not queue:
+            print(f"Word queue is empty, populating from frequency list ...")
+            count = populate_queue(QUEUE_PATH, covered_common, FREQ_URL, QUEUE_REFILL_SIZE)
+            print(f"  Cached {count} words to {QUEUE_PATH}\n")
+            queue = load_queue(QUEUE_PATH)
 
+        candidates, remaining = pop_queue(QUEUE_PATH, args.want)
+        print(f"Pulled {len(candidates)} words from queue ({remaining} remaining).\n")
+        if not args.dry_run:
+            # Queue already updated on disk by pop_queue
+            pass
+
+        prompt = build_prompt(candidates, examples, corpus_text, phoneme_text)
+        print(f"Calling Claude CLI to translate up to {len(candidates)} words ...\n")
+
+    # 5. Call the Claude CLI
     result = subprocess.run(
         ["claude", "-p", prompt],
         capture_output=True,
@@ -371,7 +420,7 @@ def main() -> None:
         sys.exit(f"ERROR: claude CLI exited with code {result.returncode}:\n{result.stderr}")
     raw_response = result.stdout
 
-    # 6. Parse the response
+    # 6. Parse response
     proposed = parse_llm_csv(raw_response)
     print(f"LLM proposed {len(proposed)} entries.\n")
 
@@ -400,12 +449,12 @@ def main() -> None:
         return
 
     # 8. Patch CSV and rebuild DB
-    print(f"Appending {len(accepted)} rows to {CSV_PATH} …")
+    print(f"Appending {len(accepted)} rows to {CSV_PATH} ...")
     append_to_csv(accepted, CSV_PATH)
 
-    print(f"Rebuilding {DB_PATH} …")
+    print(f"Rebuilding {DB_PATH} ...")
     total = rebuild_db(CSV_PATH, DB_PATH)
-    print(f"Done — {total:,} rows in dictionary.")
+    print(f"Done -- {total:,} rows in dictionary.")
 
 
 if __name__ == "__main__":

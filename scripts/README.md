@@ -23,39 +23,49 @@ keys required.
 # Preview what would be added (no files changed)
 python3 scripts/llm_fill_gaps.py --dry-run
 
-# Add up to 30 new entries from the frequency list (default)
+# Add up to 100 words from the queue (default)
 python3 scripts/llm_fill_gaps.py
 
-# Add up to 50 new entries from the frequency list
-python3 scripts/llm_fill_gaps.py --want 50
+# Pull a smaller batch
+python3 scripts/llm_fill_gaps.py --want 30
 
-# Generate words for a specific topic instead of the frequency list
+# Generate words for a specific topic instead of the queue
 python3 scripts/llm_fill_gaps.py --topic "months of the year"
 python3 scripts/llm_fill_gaps.py --topic "weather and seasons" --dry-run
+
+# Rebuild the local word queue from scratch (e.g. after adding many new words)
+python3 scripts/llm_fill_gaps.py --refresh-queue
 ```
 
 The script:
 1. Loads the current dictionary state from `Data/drow_dictionary.db`.
-2. Fetches Peter Norvig's English word-frequency list and finds the top `--want`
-   words with no coverage.
-3. Samples `--samples` (default: 80) random existing pairs from the CSV to use as
+2. Maintains a local FIFO queue (`scripts/word_queue.txt`, gitignored) of up to
+   2,000 frequency-ranked English words not yet in the dictionary.  On the first
+   run (or after `--refresh-queue`) it fetches Peter Norvig's frequency list to
+   populate it.
+3. Pops `--want` (default: 100) words off the front of the queue.  Those words
+   are consumed regardless of outcome — modern words like "website" are simply
+   omitted by the LLM rather than left blocking the queue.
+4. Samples `--samples` (default: 80) random existing pairs from the CSV to use as
    style examples for the LLM.
-4. Reads `analysis/corpus_analysis.txt` and `analysis/phoneme_pairs.txt` to give
+5. Reads `analysis/corpus_analysis.txt` and `analysis/phoneme_pairs.txt` to give
    the LLM phonotactic context.
-5. Calls `claude-opus-4-6` with a structured prompt asking for a CSV block of new
-   `english,drow,notes` entries.
-6. Collision-checks the response: skips any English word already covered, and any
+6. Calls the Claude CLI with a structured prompt.  The LLM is instructed to omit
+   modern/anachronistic words (those are handled by the algorithmic fallback) and
+   translate only pre-modern fantasy vocabulary.
+7. Collision-checks the response: skips any English word already covered, and any
    Drow form already in the dictionary.
-7. Appends accepted rows to `Data/drow_dictionary.csv` (all lowercase).
-8. Rebuilds `Data/drow_dictionary.db` from the updated CSV.
+8. Appends accepted rows to `Data/drow_dictionary.csv` (all lowercase).
+9. Rebuilds `Data/drow_dictionary.db` from the updated CSV.
 
 ### Options
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--want N` | 30 | Number of missing words to request per run (frequency mode) |
+| `--want N` | 100 | Words to pull from the queue per run |
 | `--samples N` | 80 | Existing pairs shown to LLM as style examples |
-| `--topic "..."` | — | Generate words for a topic instead of the frequency list |
+| `--topic "..."` | — | Generate words for a topic instead of the queue |
+| `--refresh-queue` | — | Re-fetch the frequency list and repopulate the queue, then exit |
 | `--dry-run` | off | Print proposed entries without modifying any files |
 
 ### After running
