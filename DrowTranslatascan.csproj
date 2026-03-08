@@ -9,6 +9,7 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="drowtest/**" />
     <None Remove="Data\drow_dictionary.db" />
   </ItemGroup>
   <ItemGroup>

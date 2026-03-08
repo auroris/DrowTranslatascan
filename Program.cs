@@ -2,27 +2,17 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-internal partial class Program
-{
-    public static string DbPath { get; set; } = "";
+Program.DbPath = Path.Combine(AppContext.BaseDirectory, "Data", "drow_dictionary.db");
+if (!File.Exists(Program.DbPath))
+    throw new Exception($"Database file can't be found at {Program.DbPath}");
 
-    private static void Main(string[] args)
+var host = new HostBuilder()
+    .ConfigureFunctionsWebApplication()
+    .ConfigureServices(services =>
     {
-        DbPath = Path.Combine(AppContext.BaseDirectory, "Data", "drow_dictionary.db");
-        if (!File.Exists(DbPath)) 
-        {
-            throw new Exception($"Database file can't be found at {DbPath}");
-        }
+        services.AddApplicationInsightsTelemetryWorkerService();
+        services.ConfigureFunctionsApplicationInsights();
+    })
+    .Build();
 
-        IHost host = new HostBuilder()
-            .ConfigureFunctionsWebApplication()
-            .ConfigureServices(services =>
-        {
-            services.AddApplicationInsightsTelemetryWorkerService();
-            services.ConfigureFunctionsApplicationInsights();
-        })
-        .Build();
-
-        host.Run();
-    }
-}
+host.Run();

@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release --output ./output
+          dotnet build DrowTranslatascan.csproj --configuration Release --output ./output
           popd
 
       - name: Login to Azure
@@ -76,4 +76,3 @@ jobs:
           app-name: 'drowtranslatascan'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
