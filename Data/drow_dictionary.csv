@@ -8,10 +8,10 @@
 'sohna,again,NULL
 'udtila,does,NULL
 'zil,as,NULL
-Anulo,sky,NULL
-Eldalie,elven,NULL
-Ul'Saruk,warlord,NULL
-Zze'ill,werewolf,NULL
+anulo,sky,NULL
+eldalie,elven,NULL
+ul'saruk,warlord,NULL
+zze'ill,werewolf,NULL
 a'leai,rare,NULL
 a'leaiil,rarity,NULL
 a'ni,general,NULL
@@ -70,7 +70,7 @@ alus,went,NULL
 alust,facing,NULL
 alust,front,NULL
 alust,infront,NULL
-aluve',I leave you,NULL
+aluve',i leave you,NULL
 aluve',farewell,NULL
 aluve',farewell,NULL
 aluve,farewell,NULL
@@ -2271,7 +2271,7 @@ usstan'bal,i've,NULL
 usstan'luf,oneselff,NULL
 usstan'sargh,arrogant,NULL
 usstan'sargho,arrogance,NULL
-usstan,I,NULL
+usstan,i,NULL
 usstan,i,NULL
 usstan,myself,NULL
 usstan,this one,NULL
