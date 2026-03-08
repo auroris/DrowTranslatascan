@@ -4,7 +4,6 @@ using Humanizer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker;
-using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 
 namespace DrowTranslatascan
 {
@@ -13,6 +12,15 @@ namespace DrowTranslatascan
         private readonly ILogger _logger;
         private const string Common = "Common";
         private const string Drow = "Drow";
+
+        // Compiled regex patterns
+        private static readonly Regex NonWhitespaceRegex = new Regex(@"\S", RegexOptions.Compiled);
+        private static readonly Regex WordCharRegex = new Regex(@"\w", RegexOptions.Compiled);
+        private static readonly Regex WordTokenRegex = new Regex(@"\G[\w']+\-?[\w']*", RegexOptions.Compiled);
+        private static readonly Regex NonWordTokenRegex = new Regex(@"\G(?:\W+|\s+)", RegexOptions.Compiled);
+        private static readonly Regex PossessiveSRegex = new Regex(@"'s$", RegexOptions.Compiled);
+        private static readonly Regex PluralPossessiveRegex = new Regex(@"s'$", RegexOptions.Compiled);
+        private static readonly Regex TrailingVowelRegex = new Regex(@"[aeiou]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public TranslateFunction(ILoggerFactory loggerFactory)
         {
@@ -77,18 +85,17 @@ namespace DrowTranslatascan
                     connection.Open();
                     result = DoTranslation(text, lang == Drow ? Drow : Common, lang == Drow ? Common : Drow, connection);
                 }
-            } 
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex.ToString());
                 response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-                await response.WriteStringAsync(ex.ToString());
+                await response.WriteStringAsync("An internal error occurred.");
                 return response;
             }
 
             // Return the translated text as plain text
             response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            req.Headers.Add("Content-Type", "text/plain");
             await response.WriteStringAsync(result);
             return response;
         }
@@ -118,16 +125,15 @@ namespace DrowTranslatascan
                 // Try multi-word translations (up to MAX_COMPOUND_LENGTH)
                 const int MAX_COMPOUND_LENGTH = 4;
                 int maxMulti = 0;
-                int multi = 0;
                 // Find the largest run of words (without punctuation)
-                for (multi = 0; multi < MAX_COMPOUND_LENGTH * 2; multi++)
+                for (int multi = 0; multi < MAX_COMPOUND_LENGTH * 2; multi++)
                 {
                     int multiIdx = i + multi;
                     if (multiIdx >= numTokens)
                         break;
                     if (!isWord[multiIdx])
                     {
-                        if (Regex.IsMatch(tokens[multiIdx], @"\S"))
+                        if (NonWhitespaceRegex.IsMatch(tokens[multiIdx]))
                             break;
                     }
                     else
@@ -160,11 +166,18 @@ namespace DrowTranslatascan
 
                 if (!translated && langTo == Drow)
                 {
-                    // Attempt at algorithmic conversion of English to Drow
+                    // Algorithmic fallback: English → Drow
                     results.Add(AlgorithmicConverter.ConvertToDrow(tokens[i]));
                     translated = true;
-                } 
-                
+                }
+
+                if (!translated && langTo == Common)
+                {
+                    // Algorithmic fallback: Drow → English (cipher reverse)
+                    results.Add(AlgorithmicConverter.ConvertToCommon(tokens[i]));
+                    translated = true;
+                }
+
                 if (!translated)
                 {
                     // Could not translate
@@ -175,8 +188,7 @@ namespace DrowTranslatascan
             }
 
             // Combine results
-            string translatedText = string.Concat(results);
-            return translatedText;
+            return string.Concat(results);
         }
 
         static bool TryWordForms(string token, string langTo, string langFrom, List<string> results, SQLiteConnection connection)
@@ -234,7 +246,7 @@ namespace DrowTranslatascan
             {
                 foreach (var splitToken in splitWords)
                 {
-                    if (!Regex.IsMatch(splitToken, @"\w"))
+                    if (!WordCharRegex.IsMatch(splitToken))
                     {
                         results.Add(splitToken);
                         continue;
@@ -243,6 +255,10 @@ namespace DrowTranslatascan
                     if (!string.IsNullOrEmpty(word))
                     {
                         results.Add(word);
+                    }
+                    else if (langTo == Drow)
+                    {
+                        results.Add(AlgorithmicConverter.ConvertToDrow(splitToken));
                     }
                     else
                     {
@@ -263,7 +279,7 @@ namespace DrowTranslatascan
             int index = 0;
             while (index < text.Length)
             {
-                var wordMatch = Regex.Match(text.Substring(index), @"^([\w']+\-?[\w']*)");
+                var wordMatch = WordTokenRegex.Match(text, index);
                 if (wordMatch.Success)
                 {
                     tokens.Add(wordMatch.Value);
@@ -272,11 +288,11 @@ namespace DrowTranslatascan
                 }
                 else
                 {
-                    var nonWordMatch = Regex.Match(text.Substring(index), @"^(\W+|\s+)");
+                    var nonWordMatch = NonWordTokenRegex.Match(text, index);
                     if (nonWordMatch.Success)
                     {
                         var nonword = nonWordMatch.Value;
-                        if (!Regex.IsMatch(nonword, @"\S"))
+                        if (!NonWhitespaceRegex.IsMatch(nonword))
                         {
                             nonword = " ";
                         }
@@ -336,13 +352,13 @@ namespace DrowTranslatascan
 
         static (string, string) UnPossessivize(string word, string langFrom)
         {
-            if (Regex.IsMatch(word, @"'s$"))
+            if (PossessiveSRegex.IsMatch(word))
             {
-                return (Regex.Replace(word, @"'s$", ""), "Possessive");
+                return (PossessiveSRegex.Replace(word, ""), "Possessive");
             }
-            else if (Regex.IsMatch(word, @"s'$"))
+            else if (PluralPossessiveRegex.IsMatch(word))
             {
-                return (Regex.Replace(word, @"s'$", "s"), "Possessive");
+                return (PluralPossessiveRegex.Replace(word, "s"), "Possessive");
             }
             else
             {
@@ -388,8 +404,8 @@ namespace DrowTranslatascan
         {
             if (langTo == Drow)
             {
-                // Drow pluralization
-                if (Regex.IsMatch(word, @"[aeiou]$", RegexOptions.IgnoreCase))
+                // Drow pluralization: vowel-ending → +n, consonant-ending → +en
+                if (TrailingVowelRegex.IsMatch(word))
                 {
                     return word + "n";
                 }
