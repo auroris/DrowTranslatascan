@@ -1,0 +1,163 @@
+Loaded 2700 pairs
+
+=== Letter frequencies (Drow vs Common, ratio Drow/Common) ===
+Letter   Drow%   Common%   Ratio
+     z    1.88%      0.16%   11.69 ◄ Drow-heavy
+     q    0.61%      0.11%    5.68 ◄ Drow-heavy
+     j    0.70%      0.12%    5.61 ◄ Drow-heavy
+     x    0.65%      0.19%    3.41 ◄ Drow-heavy
+     k    2.78%      1.18%    2.35 ◄ Drow-heavy
+     u    6.13%      3.04%    2.01 ◄ Drow-heavy
+     h    5.76%      3.20%    1.80 ◄ Drow-heavy
+     l    9.02%      5.53%    1.63 ◄ Drow-heavy
+     a   11.04%      7.75%    1.42
+     v    1.72%      1.27%    1.35
+     n    7.73%      6.75%    1.15
+     i    7.70%      7.03%    1.10
+     r    8.13%      7.59%    1.07
+     y    1.67%      1.57%    1.06
+     s    7.12%      7.71%    0.92
+     b    1.37%      1.56%    0.88
+     t    5.63%      6.79%    0.83
+     o    4.27%      6.47%    0.66
+     g    2.00%      3.13%    0.64
+     d    2.27%      3.95%    0.57
+     e    7.20%     12.65%    0.57
+     m    1.37%      2.71%    0.51
+     f    0.69%      1.88%    0.37 ◄ Common-heavy
+     w    0.61%      1.75%    0.35 ◄ Common-heavy
+     p    0.86%      2.56%    0.33 ◄ Common-heavy
+     c    1.11%      3.35%    0.33 ◄ Common-heavy
+
+=== Top 40 Drow bigrams ===
+  th  2.81%  (Common: 1.15%  ratio: 2.4) ◄
+  in  2.55%  (Common: 2.49%  ratio: 1.0)
+  ar  2.26%  (Common: 1.34%  ratio: 1.7)
+  al  1.95%  (Common: 1.20%  ratio: 1.6)
+  ss  1.93%  (Common: 0.68%  ratio: 2.8) ◄
+  el  1.78%  (Common: 0.76%  ratio: 2.3) ◄
+  ha  1.75%  (Common: 0.00%  ratio: inf) ◄
+  la  1.65%  (Common: 0.75%  ratio: 2.2) ◄
+  ri  1.47%  (Common: 0.84%  ratio: 1.8)
+  en  1.40%  (Common: 1.52%  ratio: 0.9)
+  il  1.36%  (Common: 0.00%  ratio: inf) ◄
+  an  1.27%  (Common: 0.95%  ratio: 1.3)
+  re  1.23%  (Common: 1.64%  ratio: 0.8)
+  li  1.21%  (Common: 0.72%  ratio: 1.7)
+  ra  1.13%  (Common: 0.85%  ratio: 1.3)
+  us  1.08%  (Common: 0.00%  ratio: inf) ◄
+  or  1.06%  (Common: 1.15%  ratio: 0.9)
+  na  0.95%  (Common: 0.00%  ratio: inf) ◄
+  ol  0.92%  (Common: 0.00%  ratio: inf) ◄
+  ta  0.91%  (Common: 0.00%  ratio: inf) ◄
+  ul  0.90%  (Common: 0.00%  ratio: inf) ◄
+  lu  0.80%  (Common: 0.00%  ratio: inf) ◄
+  er  0.80%  (Common: 2.35%  ratio: 0.3)
+  un  0.78%  (Common: 0.00%  ratio: inf) ◄
+  es  0.75%  (Common: 1.66%  ratio: 0.5)
+  le  0.74%  (Common: 1.25%  ratio: 0.6)
+  st  0.74%  (Common: 1.28%  ratio: 0.6)
+  ve  0.74%  (Common: 0.93%  ratio: 0.8)
+  au  0.73%  (Common: 0.00%  ratio: inf) ◄
+  at  0.73%  (Common: 1.10%  ratio: 0.7)
+  sh  0.72%  (Common: 0.00%  ratio: inf) ◄
+  it  0.71%  (Common: 0.00%  ratio: inf) ◄
+  nt  0.71%  (Common: 0.93%  ratio: 0.8)
+  si  0.71%  (Common: 0.00%  ratio: inf) ◄
+  sa  0.70%  (Common: 0.00%  ratio: inf) ◄
+  ni  0.68%  (Common: 0.00%  ratio: inf) ◄
+  ro  0.67%  (Common: 0.74%  ratio: 0.9)
+  hi  0.67%  (Common: 0.00%  ratio: inf) ◄
+  ur  0.64%  (Common: 0.00%  ratio: inf) ◄
+  he  0.64%  (Common: 0.77%  ratio: 0.8)
+
+=== Top 40 Common bigrams not prominent in Drow ===
+  er  Common: 2.35%  Drow: 0.80%  ratio: 0.34
+  ng  Common: 1.68%  Drow: 0.00%  ratio: 0.00
+  te  Common: 1.41%  Drow: 0.00%  ratio: 0.00
+  on  Common: 1.34%  Drow: 0.00%  ratio: 0.00
+  ea  Common: 1.17%  Drow: 0.00%  ratio: 0.00
+  se  Common: 1.07%  Drow: 0.00%  ratio: 0.00
+  ed  Common: 1.05%  Drow: 0.00%  ratio: 0.00
+  de  Common: 0.98%  Drow: 0.00%  ratio: 0.00
+  ou  Common: 0.93%  Drow: 0.00%  ratio: 0.00
+  ti  Common: 0.90%  Drow: 0.00%  ratio: 0.00
+  ne  Common: 0.81%  Drow: 0.00%  ratio: 0.00
+  ll  Common: 0.81%  Drow: 0.00%  ratio: 0.00
+  as  Common: 0.73%  Drow: 0.00%  ratio: 0.00
+  me  Common: 0.73%  Drow: 0.00%  ratio: 0.00
+  co  Common: 0.71%  Drow: 0.00%  ratio: 0.00
+  nd  Common: 0.70%  Drow: 0.00%  ratio: 0.00
+  ee  Common: 0.69%  Drow: 0.00%  ratio: 0.00
+  lo  Common: 0.69%  Drow: 0.00%  ratio: 0.00
+
+=== Drow-specific multi-char patterns (not preceded by apostrophe) ===
+  ii  in 42 Drow words (1.6%)  vs 0 Common (0.0%)
+  yr  in 39 Drow words (1.4%)  vs 1 Common (0.0%)
+  ae  in 89 Drow words (3.3%)  vs 1 Common (0.0%)
+  au  in 95 Drow words (3.5%)  vs 22 Common (0.8%)
+  ss  in 238 Drow words (8.8%)  vs 89 Common (3.3%)
+  rr  in 75 Drow words (2.8%)  vs 37 Common (1.4%)
+  qu  in 72 Drow words (2.7%)  vs 18 Common (0.7%)
+  zz  in 28 Drow words (1.0%)  vs 3 Common (0.1%)
+  nn  in 59 Drow words (2.2%)  vs 13 Common (0.5%)
+  ll  in 75 Drow words (2.8%)  vs 113 Common (4.2%)
+  tt  in 7 Drow words (0.3%)  vs 32 Common (1.2%)
+
+=== Apostrophe density ===
+  Drow:   833 apostrophes in 17279 letters  (4.82%)
+  Common: 8 apostrophes in 16827 letters (0.05%)
+  Drow words containing apostrophe: 811/2700 (30.0%)
+
+=== Word length (letters only) ===
+  Drow:   avg 6.40  min 1  max 21
+  Common: avg 6.23  min 1  max 30
+  Drow/Common letter ratio: avg 1.12
+
+=== Vowel/consonant balance ===
+  Drow:   36.3% vowels
+  Common: 36.9% vowels
+
+=== Top vowel sequences (2+) in Drow ===
+  au        102x in Drow words  /  22 Common words contain it
+  ae         86x in Drow words  /  1 Common words contain it
+  ue         54x in Drow words  /  27 Common words contain it
+  ua         52x in Drow words  /  15 Common words contain it
+  uu         43x in Drow words  /  0 Common words contain it
+  ee         42x in Drow words  /  98 Common words contain it
+  ui         40x in Drow words  /  25 Common words contain it
+  ii         40x in Drow words  /  0 Common words contain it
+  ei         36x in Drow words  /  19 Common words contain it
+  ai         32x in Drow words  /  70 Common words contain it
+  ou         31x in Drow words  /  131 Common words contain it
+  ia         29x in Drow words  /  20 Common words contain it
+  aa         24x in Drow words  /  1 Common words contain it
+  ie         22x in Drow words  /  64 Common words contain it
+  ea         19x in Drow words  /  163 Common words contain it
+  uo         15x in Drow words  /  0 Common words contain it
+  oa         12x in Drow words  /  9 Common words contain it
+  oe         10x in Drow words  /  9 Common words contain it
+  iu         10x in Drow words  /  1 Common words contain it
+  ao          9x in Drow words  /  1 Common words contain it
+
+=== Top vowel sequences (2+) in Common ===
+  ea        162x  /  31 Drow words contain it
+  ou        117x  /  35 Drow words contain it
+  ee         95x  /  51 Drow words contain it
+  ai         70x  /  40 Drow words contain it
+  io         69x  /  8 Drow words contain it
+  ie         62x  /  25 Drow words contain it
+  oo         57x  /  9 Drow words contain it
+  ue         26x  /  58 Drow words contain it
+  ui         22x  /  45 Drow words contain it
+  ia         20x  /  30 Drow words contain it
+  au         19x  /  106 Drow words contain it
+  ei         18x  /  39 Drow words contain it
+  ua         15x  /  58 Drow words contain it
+  oi         14x  /  10 Drow words contain it
+  iou        12x  /  0 Drow words contain it
+  oe          9x  /  10 Drow words contain it
+  oa          9x  /  12 Drow words contain it
+  eo          4x  /  6 Drow words contain it
+  eu          3x  /  6 Drow words contain it
+  eau         3x  /  0 Drow words contain it

@@ -1,0 +1,94 @@
+
+'j in Drow' — 115 pairs. Examples:
+  remember                  → ajak
+  all of you                → d'jal
+  fix                       → dajakk
+  cunt                      → dajjin'sl
+  frost                     → drejan
+  implore                   → eit'jae
+  precious                  → farjali
+  incompetence              → fjolla'danne
+  just                      → fridj
+  defeat                    → g'jahall
+  later                     → gajak
+  late                      → gajen
+  fail                      → hojh
+  fails                     → hojj
+  failed                    → hojjau
+
+'w in Drow' — 102 pairs. Examples:
+  soup                      → awni
+  unwary                    → awylir
+  student                   → baut'wael
+  good                      → bwael
+  blamed                    → crupowl
+  wish                      → daewl
+  wishes                    → daewle
+  wishing                   → daewlin
+  chicken soup              → derfi awni
+  rightful                  → ditronw'urn
+  right                     → ditronw
+  remove                    → drewst
+  lonely                    → dwalc
+  entangled                 → g'waeklyth
+  oder                      → gow
+
+'p': 141/2700 Drow words  vs  384/2700 Common words
+
+'qu in Drow' — 72 pairs. Examples:
+  commission                → a'quarth
+  commissioned              → a'quarthus
+  as you wish               → asanque
+  likewise                  → asanque
+  as you wish               → asanquel
+  dog                       → auflaque
+  jackle                    → auflaque
+  dogs                      → auflaqui
+  doomed                    → dusqup
+  skill                     → equidai
+  fulfillment               → ilquanthafer
+  imp                       → inlul'quar
+  simultaneous              → iqualment
+  property                  → jinique
+  properties                → jiniquiln
+
+'z in Common (Drow side)' — 24 pairs. Examples:
+  maze                      → belgareth
+  wizard                    → faern
+  wizards                   → faernen
+  blazing fire              → fetear
+  breeze                    → hwesta
+  puzzle                    → krrja
+  puzzled                   → krrjat
+  gaze                      → l'inya
+  mzuld                     → less
+  lizardman                 → linddil
+  brazier                   → linthre
+  seize                     → plynn
+  house wizard              → qu'el'faeruk
+  drizzle                   → timpe
+  lizard                    → tizzin
+
+Chars present in Drow words but never in Common words: []
+
+Top 20 Drow trigrams:
+  ith  80x
+  har  75x
+  lin  70x
+  rin  69x
+  nth  62x
+  tha  62x
+  uth  61x
+  ess  61x
+  uss  61x
+  ath  56x
+  hal  50x
+  lar  49x
+  elg  48x
+  ssi  48x
+  vel  47x
+  hin  46x
+  the  45x
+  int  43x
+  sin  43x
+  ela  41x
