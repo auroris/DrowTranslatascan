@@ -10,7 +10,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-DB = Path(__file__).parent.parent / "Data" / "drow_dictionary.db"
+DB = Path(__file__).parent.parent / "tel'mithrim" / "drow_dictionary.db"
 
 # ── Load corpus ────────────────────────────────────────────────────────────────
 

@@ -8,7 +8,7 @@ import sqlite3, re
 from collections import Counter
 from pathlib import Path
 
-DB = Path(__file__).parent.parent / "Data" / "drow_dictionary.db"
+DB = Path(__file__).parent.parent / "tel'mithrim" / "drow_dictionary.db"
 
 with sqlite3.connect(DB) as con:
     rows = con.execute("SELECT Drow, Common FROM drow_dictionary").fetchall()
