@@ -159,3 +159,47 @@ print(f"\n=== Top vowel sequences (2+) in Common ===")
 for seq, cnt in vowel_sequences(common_words):
     dc = sum(1 for w in drow_words if seq in re.sub(r"[^a-z]", "", w))
     print(f"  {seq:<8} {cnt:>4}x  /  {dc} Drow words contain it")
+
+# ── 8. Word-initial and word-final patterns ────────────────────────────────────
+
+def boundary_ngrams(words, n, position):
+    """Count n-grams at the start ('initial') or end ('final') of each word."""
+    c = Counter()
+    for w in words:
+        letters = re.sub(r"[^a-z]", "", w)
+        if len(letters) >= n:
+            gram = letters[:n] if position == "initial" else letters[-n:]
+            c[gram] += 1
+    total = len(words)
+    return [(gram, count, count / total) for gram, count in c.most_common(12)]
+
+for n, label in [(1, "letter"), (2, "bigram")]:
+    print(f"\n=== Top 12 Drow word-initial {label}s ===")
+    for gram, count, pct in boundary_ngrams(drow_words, n, "initial"):
+        print(f"  {gram:<6}  {count:>4} words  ({pct*100:.1f}%)")
+
+    print(f"\n=== Top 12 Drow word-final {label}s ===")
+    for gram, count, pct in boundary_ngrams(drow_words, n, "final"):
+        print(f"  {gram:<6}  {count:>4} words  ({pct*100:.1f}%)")
+
+# ── 9. Word-length distribution ────────────────────────────────────────────────
+
+print(f"\n=== Drow word-length distribution (letters only) ===")
+length_counts = Counter(drow_len)
+for length in sorted(length_counts):
+    bar = "#" * (length_counts[length] // 10)
+    print(f"  {length:>2} letters: {length_counts[length]:>4} words  {bar}")
+
+# ── 10. Common Drow prefixes and suffixes (data-driven) ───────────────────────
+
+print(f"\n=== Top 10 Drow word prefixes (2- and 3-char) ===")
+for n in (2, 3):
+    print(f"  {n}-char:")
+    for gram, count, pct in boundary_ngrams(drow_words, n, "initial")[:10]:
+        print(f"    {gram:<6}  {count:>4} words  ({pct*100:.1f}%)")
+
+print(f"\n=== Top 10 Drow word suffixes (2- and 3-char) ===")
+for n in (2, 3):
+    print(f"  {n}-char:")
+    for gram, count, pct in boundary_ngrams(drow_words, n, "final")[:10]:
+        print(f"    {gram:<6}  {count:>4} words  ({pct*100:.1f}%)")
