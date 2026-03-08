@@ -1,4 +1,4 @@
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using DrowTranslatascan;
 
 string dbPath = "../Data/drow_dictionary.db";
@@ -176,15 +176,15 @@ AssertNotEmpty("two chars   \"be\"", AlgorithmicConverter.ConvertToDrow("be"));
 // ── Database lookups ────────────────────────────────────────────────────────
 Console.WriteLine("\n=== Database lookups ===");
 
-string Lookup(string word, string fromCol, string toCol, SQLiteConnection conn)
+string Lookup(string word, string fromCol, string toCol, SqliteConnection conn)
 {
-    using var cmd = new SQLiteCommand($"SELECT {toCol} FROM drow_dictionary WHERE {fromCol} = @w", conn);
+    using var cmd = new SqliteCommand($"SELECT {toCol} FROM drow_dictionary WHERE {fromCol} = @w", conn);
     cmd.Parameters.AddWithValue("@w", word.ToLower());
     var val = cmd.ExecuteScalar();
     return val as string ?? "";
 }
 
-using (var conn = new SQLiteConnection($"Data Source={dbPath};Version=3;Read Only=True;"))
+using (var conn = new SqliteConnection($"Data Source={dbPath};Mode=ReadOnly"))
 {
     conn.Open();
 

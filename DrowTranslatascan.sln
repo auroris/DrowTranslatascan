@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35303.130
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11512.155 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DrowTranslatascan", "DrowTranslatascan.csproj", "{AF41BE9E-BE39-4EFC-A222-4349D085BDC9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "drowtest", "drowtest\drowtest.csproj", "{715554AA-2B45-D99D-B332-514E9973980D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{AF41BE9E-BE39-4EFC-A222-4349D085BDC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF41BE9E-BE39-4EFC-A222-4349D085BDC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF41BE9E-BE39-4EFC-A222-4349D085BDC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{715554AA-2B45-D99D-B332-514E9973980D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{715554AA-2B45-D99D-B332-514E9973980D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{715554AA-2B45-D99D-B332-514E9973980D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{715554AA-2B45-D99D-B332-514E9973980D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

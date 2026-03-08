@@ -1,4 +1,4 @@
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Text.RegularExpressions;
 using Humanizer;
 using Microsoft.Extensions.Logging;
@@ -80,7 +80,7 @@ namespace DrowTranslatascan
 
             try
             {
-                using (SQLiteConnection connection = new SQLiteConnection($"Data Source={Program.DbPath};Version=3;Read Only=True;"))
+                using (SqliteConnection connection = new SqliteConnection($"Data Source={Program.DbPath};Mode=ReadOnly"))
                 {
                     connection.Open();
                     result = DoTranslation(text, lang == Drow ? Drow : Common, lang == Drow ? Common : Drow, connection);
@@ -100,7 +100,7 @@ namespace DrowTranslatascan
             return response;
         }
 
-        static string DoTranslation(string text, string langTo, string langFrom, SQLiteConnection connection)
+        static string DoTranslation(string text, string langTo, string langFrom, SqliteConnection connection)
         {
             // Tokenize the text
             List<string> tokens = Tokenize(text, out List<bool> isWord);
@@ -191,7 +191,7 @@ namespace DrowTranslatascan
             return string.Concat(results);
         }
 
-        static bool TryWordForms(string token, string langTo, string langFrom, List<string> results, SQLiteConnection connection)
+        static bool TryWordForms(string token, string langTo, string langFrom, List<string> results, SqliteConnection connection)
         {
             // First, try direct translation
             string word = GetTranslation(token, langTo, langFrom, connection, out string _);
@@ -312,7 +312,7 @@ namespace DrowTranslatascan
             return tokens;
         }
 
-        static string GetTranslation(string word, string langTo, string langFrom, SQLiteConnection connection, out string notes)
+        static string GetTranslation(string word, string langTo, string langFrom, SqliteConnection connection, out string notes)
         {
             notes = "";
             string translation = "";
@@ -324,7 +324,7 @@ namespace DrowTranslatascan
 
             // Lookup in database
             string query = $"SELECT {langTo}, Notes FROM drow_dictionary WHERE {langFrom} = @word";
-            using (var command = new SQLiteCommand(query, connection))
+            using (var command = new SqliteCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@word", wordLower);
 
