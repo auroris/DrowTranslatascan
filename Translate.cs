@@ -318,7 +318,7 @@ namespace DrowTranslatascan
             string translation = "";
             // Handle capitalization
             bool isFirstCap = char.IsUpper(word[0]);
-            bool isAllCap = word.All(c => !char.IsLetter(c) || char.IsUpper(c));
+            bool isAllCap = word.Count(char.IsLetter) > 1 && word.All(c => !char.IsLetter(c) || char.IsUpper(c));
 
             string wordLower = word.ToLower();
 

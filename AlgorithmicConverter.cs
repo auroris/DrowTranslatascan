@@ -131,9 +131,16 @@ namespace DrowTranslatascan
 
         private static bool IsAllCaps(string word)
         {
+            int letterCount = 0;
             foreach (char c in word)
-                if (char.IsLetter(c) && !char.IsUpper(c)) return false;
-            return true;
+            {
+                if (char.IsLetter(c))
+                {
+                    letterCount++;
+                    if (!char.IsUpper(c)) return false;
+                }
+            }
+            return letterCount > 1;
         }
 
         private static string StripNonAlpha(string word)
