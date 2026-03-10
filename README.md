@@ -20,7 +20,7 @@ An Azure Function that translates text between English (Common) and the Drow lan
   - `Microsoft.Azure.Functions.Worker` and related extensions
   - `Microsoft.Data.Sqlite` (SQLite database access)
   - `Humanizer.Core` (pluralization and singularization)
-  - `Swashbuckle.AspNetCore` (Swagger / OpenAPI docs)
+  - `Microsoft.Azure.Functions.Worker.Extensions.OpenApi` (Swagger / OpenAPI docs for isolated worker)
 
 ## Installation
 

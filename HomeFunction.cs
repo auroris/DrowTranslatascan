@@ -212,9 +212,9 @@ namespace DrowTranslatascan
               </div>
 
               <footer>
-                <a href="/swagger/index.html" target="_blank">API docs (Swagger)</a>
+                <a href="/api/swagger/ui" target="_blank">API docs (Swagger)</a>
                 &nbsp;·&nbsp;
-                <a href="/swagger/v1/swagger.json" target="_blank">OpenAPI spec</a>
+                <a href="/api/openapi/v3.json" target="_blank">OpenAPI spec</a>
                 &nbsp;·&nbsp;
                 <a href="https://github.com/auroris/DrowTranslatascan">GitHub</a>
               </footer>
