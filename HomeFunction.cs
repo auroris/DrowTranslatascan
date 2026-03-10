@@ -5,8 +5,16 @@ using System.Net;
 
 namespace DrowTranslatascan
 {
+    /// <summary>
+    /// Azure Function that serves the dark-fantasy themed web UI for the Drow Translatascan.
+    /// Responds to <c>GET /api/Home</c> with a self-contained HTML page.
+    /// </summary>
     public class HomeFunction
     {
+        /// <summary>Returns the translator web UI as an HTML page.</summary>
+        /// <param name="req">The incoming HTTP request.</param>
+        /// <param name="executionContext">Azure Functions execution context.</param>
+        /// <returns>HTTP 200 response containing the HTML page.</returns>
         [Function("Home")]
         [OpenApiOperation(operationId: "Home", tags: new[] { "ui" }, Summary = "Translator web UI")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/html", bodyType: typeof(string), Description = "HTML page")]
@@ -20,6 +28,7 @@ namespace DrowTranslatascan
             return response;
         }
 
+        /// <summary>The complete HTML page served by <see cref="Run"/>.</summary>
         internal static readonly string Html = """
             <!DOCTYPE html>
             <html lang="en">
@@ -203,9 +212,9 @@ namespace DrowTranslatascan
               </div>
 
               <footer>
-                <a href="/api/swagger/ui" target="_blank">API docs (Swagger)</a>
+                <a href="/swagger/index.html" target="_blank">API docs (Swagger)</a>
                 &nbsp;·&nbsp;
-                <a href="/api/openapi/v3.json" target="_blank">OpenAPI spec</a>
+                <a href="/swagger/v1/swagger.json" target="_blank">OpenAPI spec</a>
                 &nbsp;·&nbsp;
                 <a href="https://github.com/auroris/DrowTranslatascan">GitHub</a>
               </footer>

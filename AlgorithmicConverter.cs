@@ -2,6 +2,17 @@ using System.Text;
 
 namespace DrowTranslatascan
 {
+    /// <summary>
+    /// Provides algorithmic (fallback) conversion between English and Drow for words
+    /// not found in the dictionary.
+    /// </summary>
+    /// <remarks>
+    /// The encoder applies a grapheme-substitution table to an English word, then
+    /// inserts a single structural apostrophe at the first VC'V boundary to produce
+    /// the characteristic Drow word shape.  The decoder reverses this process.
+    /// These conversions are intentionally approximate — the dictionary should always
+    /// be preferred where a match exists.
+    /// </remarks>
     public class AlgorithmicConverter
     {
         // Encoding: English grapheme → Drow grapheme.
@@ -27,6 +38,12 @@ namespace DrowTranslatascan
             ("z",  "th"),  ("x",  "ch"),  ("j",  "w"),
         };
 
+        /// <summary>
+        /// Converts an English word to its approximate Drow equivalent using the
+        /// grapheme-substitution table and apostrophe-insertion rules.
+        /// </summary>
+        /// <param name="englishWord">The English word to convert. Must be non-empty.</param>
+        /// <returns>The algorithmically generated Drow word, with capitalization preserved.</returns>
         public static string ConvertToDrow(string englishWord)
         {
             bool isFirstCap = char.IsUpper(englishWord[0]);
@@ -40,6 +57,12 @@ namespace DrowTranslatascan
             return RestoreCapitalization(result, isFirstCap, isAllCap);
         }
 
+        /// <summary>
+        /// Converts a Drow word back to its approximate English equivalent by reversing
+        /// the grapheme substitutions.
+        /// </summary>
+        /// <param name="drowWord">The Drow word to convert. Must be non-empty.</param>
+        /// <returns>The algorithmically recovered English word, with capitalization preserved.</returns>
         public static string ConvertToCommon(string drowWord)
         {
             bool isFirstCap = char.IsUpper(drowWord[0]);
@@ -55,6 +78,11 @@ namespace DrowTranslatascan
 
         // ── Core helpers ────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Performs a greedy left-to-right scan of <paramref name="input"/>, replacing
+        /// each matching grapheme sequence found in <paramref name="table"/> with its
+        /// corresponding target, and copying unmatched characters unchanged.
+        /// </summary>
         private static string ApplyTable(string input, (string From, string To)[] table)
         {
             var sb = new StringBuilder(input.Length * 2);
@@ -78,8 +106,11 @@ namespace DrowTranslatascan
             return sb.ToString();
         }
 
-        // Returns true if position i is the start of an encoded vowel cluster,
-        // setting len to 1 or 2.  Encoded vowels: ae, au, ii, a, i, u.
+        /// <summary>
+        /// Returns <see langword="true"/> if position <paramref name="i"/> is the start
+        /// of an encoded Drow vowel cluster (<c>ae</c>, <c>au</c>, <c>ii</c>, <c>a</c>,
+        /// <c>i</c>, or <c>u</c>), and sets <paramref name="len"/> to 1 or 2 accordingly.
+        /// </summary>
         private static bool IsEncodedVowel(string s, int i, out int len)
         {
             if (i + 1 < s.Length)
@@ -93,8 +124,12 @@ namespace DrowTranslatascan
             return false;
         }
 
-        // Inserts one structural apostrophe before the second vowel group,
-        // producing the VC'V boundary characteristic of Drow words.
+        /// <summary>
+        /// Inserts one structural apostrophe before the second vowel group in an
+        /// already-encoded Drow word, producing the VC'V boundary characteristic
+        /// of authentic Drow orthography.  Words shorter than 5 characters are
+        /// returned unchanged.
+        /// </summary>
         private static string InsertApostrophe(string encoded)
         {
             if (encoded.Length < 5) return encoded;
@@ -115,6 +150,12 @@ namespace DrowTranslatascan
             return encoded.Substring(0, i) + '\'' + encoded.Substring(i);
         }
 
+        /// <summary>
+        /// Restores the original capitalization pattern of a word after conversion.
+        /// If <paramref name="isAllCap"/> is <see langword="true"/>, the whole word is
+        /// uppercased; if only <paramref name="isFirstCap"/> is <see langword="true"/>,
+        /// the first letter is capitalized.
+        /// </summary>
         private static string RestoreCapitalization(string word, bool isFirstCap, bool isAllCap)
         {
             if (isAllCap) return word.ToUpper();
@@ -129,6 +170,11 @@ namespace DrowTranslatascan
             return word;
         }
 
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="word"/> contains more than
+        /// one letter and every letter is uppercase (e.g. <c>"HELLO"</c>).
+        /// Single uppercase letters such as <c>"I"</c> are intentionally excluded.
+        /// </summary>
         private static bool IsAllCaps(string word)
         {
             int letterCount = 0;
@@ -143,6 +189,7 @@ namespace DrowTranslatascan
             return letterCount > 1;
         }
 
+        /// <summary>Removes all non-letter characters from <paramref name="word"/>.</summary>
         private static string StripNonAlpha(string word)
         {
             var sb = new StringBuilder(word.Length);
@@ -151,6 +198,10 @@ namespace DrowTranslatascan
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Lowercases <paramref name="word"/> and removes all apostrophes, preparing a
+        /// Drow word for decoding through the substitution table.
+        /// </summary>
         private static string StripApostrophesAndNormalize(string word)
         {
             var sb = new StringBuilder(word.Length);

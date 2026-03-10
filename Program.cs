@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 
+// Resolve and validate the database path before the host starts.
 Program.DbPath = Path.Combine(AppContext.BaseDirectory, "Data", "drow_dictionary.db");
 if (!File.Exists(Program.DbPath))
     throw new Exception($"Database file can't be found at {Program.DbPath}");
@@ -18,7 +19,11 @@ var host = new HostBuilder()
     {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
-        services.AddTransient<IStartupFilter, RootRedirectFilter>(); // comment out to disable / redirect
+
+        // Redirect GET / to the web UI. Comment out to disable.
+        services.AddTransient<IStartupFilter, RootRedirectFilter>();
+
+        // OpenAPI metadata displayed in the Swagger UI.
         services.AddSingleton<IOpenApiConfigurationOptions>(_ => new OpenApiConfigurationOptions
         {
             Info = new OpenApiInfo
@@ -33,9 +38,22 @@ var host = new HostBuilder()
 
 host.Run();
 
-// Redirects GET / to /api/Home
+/// <summary>
+/// ASP.NET Core startup filter that issues a 302 redirect from <c>GET /</c>
+/// to <c>/api/Home</c>, so visiting the root URL opens the web UI directly.
+/// </summary>
+/// <remarks>
+/// To disable this behaviour, remove the <c>AddTransient&lt;IStartupFilter, RootRedirectFilter&gt;</c>
+/// registration in <c>Program.cs</c>.
+/// <para>
+/// When deployed to Azure, also set the <c>AzureWebJobsDisableHomepage</c> application
+/// setting to <c>true</c> so the Azure Functions default homepage does not intercept <c>/</c>
+/// before this filter can act on it.
+/// </para>
+/// </remarks>
 class RootRedirectFilter : IStartupFilter
 {
+    /// <inheritdoc/>
     public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
     {
         app.UseWhen(ctx => ctx.Request.Path == "/", branch =>
