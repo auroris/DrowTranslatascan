@@ -1,9 +1,13 @@
 using Microsoft.Data.Sqlite;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Net;
 using Humanizer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
+using Microsoft.OpenApi.Models;
 
 namespace DrowTranslatascan
 {
@@ -28,6 +32,12 @@ namespace DrowTranslatascan
         }
 
         [Function("Translate")]
+        [OpenApiOperation(operationId: "Translate", tags: new[] { "translate" }, Summary = "Translate text (plain text)")]
+        [OpenApiParameter(name: "text", In = ParameterLocation.Query, Type = typeof(string), Required = false, Description = "Text to translate")]
+        [OpenApiParameter(name: "lang", In = ParameterLocation.Query, Type = typeof(string), Required = false, Description = "Target language: 'Drow' or 'Common'")]
+        [OpenApiParameter(name: "ver", In = ParameterLocation.Query, Type = typeof(string), Required = false, Description = "If present, returns version greeting")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "Translated text")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "Missing or invalid parameters")]
         public async Task<HttpResponseData> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req,
             FunctionContext executionContext)
@@ -97,6 +107,70 @@ namespace DrowTranslatascan
             // Return the translated text as plain text
             response = req.CreateResponse(System.Net.HttpStatusCode.OK);
             await response.WriteStringAsync(result);
+            return response;
+        }
+
+        [Function("TranslateJson")]
+        [OpenApiOperation(operationId: "TranslateJson", tags: new[] { "translate" }, Summary = "Translate text (JSON)")]
+        [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(TranslateRequest), Required = true, Description = "Translation request")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(TranslateResponse), Description = "Translation result")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "application/json", bodyType: typeof(ErrorResponse), Description = "Missing or invalid parameters")]
+        public async Task<HttpResponseData> RunJson(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "TranslateJson")] HttpRequestData req,
+            FunctionContext executionContext)
+        {
+            _logger.LogInformation("Processing JSON request.");
+
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            TranslateRequest? request = null;
+            try
+            {
+                request = JsonSerializer.Deserialize<TranslateRequest>(requestBody,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                var bad = req.CreateResponse(HttpStatusCode.BadRequest);
+                await bad.WriteAsJsonAsync(new ErrorResponse { Error = "Invalid JSON body." });
+                return bad;
+            }
+
+            if (string.IsNullOrEmpty(request?.Text) || string.IsNullOrEmpty(request?.Lang))
+            {
+                var bad = req.CreateResponse(HttpStatusCode.BadRequest);
+                await bad.WriteAsJsonAsync(new ErrorResponse { Error = "Please provide 'text' and 'lang' in the request body." });
+                return bad;
+            }
+
+            if (request.Lang != Drow && request.Lang != Common)
+            {
+                var bad = req.CreateResponse(HttpStatusCode.BadRequest);
+                await bad.WriteAsJsonAsync(new ErrorResponse { Error = $"Invalid language id: {request.Lang}" });
+                return bad;
+            }
+
+            string result;
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={Program.DbPath};Mode=ReadOnly");
+                connection.Open();
+                result = DoTranslation(request.Text, request.Lang == Drow ? Drow : Common, request.Lang == Drow ? Common : Drow, connection);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                var err = req.CreateResponse(HttpStatusCode.InternalServerError);
+                await err.WriteAsJsonAsync(new ErrorResponse { Error = "An internal error occurred." });
+                return err;
+            }
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(new TranslateResponse
+            {
+                Translation = result,
+                OriginalText = request.Text,
+                TargetLanguage = request.Lang
+            });
             return response;
         }
 
