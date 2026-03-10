@@ -39,9 +39,10 @@ jobs:
           # Create the new SQLite database and import the CSV
           sqlite3 drow_dictionary.db <<EOF
           CREATE TABLE drow_dictionary (
-            Drow   TEXT NOT NULL,
-            Common TEXT NOT NULL,
-            Notes  TEXT
+            Drow          TEXT NOT NULL,
+            Common        TEXT NOT NULL,
+            Notes         TEXT,
+            Attribution   TEXT
           );
           .mode csv
           .import drow_dictionary.csv drow_dictionary
