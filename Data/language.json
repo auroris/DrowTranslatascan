@@ -1,0 +1,52 @@
+{
+  "languageName": "Drow",
+  "commonName": "Common",
+  "projectTitle": "Drow Translatascan",
+  "subtitle": "Translate between Common and the tongue of the dark elves",
+  "databaseFile": "drow_dictionary.db",
+  "databaseTable": "drow_dictionary",
+
+  "pluralization": {
+    "enabled": true,
+    "vowelSuffix": "n",
+    "consonantSuffix": "en",
+    "unpluralSuffixes": [ "n", "en" ]
+  },
+
+  "algorithmicConverter": {
+    "enabled": true,
+    "encodeTable": [
+      [ "th", "z" ],  [ "sh", "ss" ], [ "ch", "x" ],
+      [ "wh", "kh" ], [ "ng", "nk" ], [ "ph", "f" ],
+      [ "e", "ae" ],  [ "o", "au" ],  [ "y", "ii" ],
+      [ "w", "j" ],   [ "j", "jh" ],  [ "c", "k" ],  [ "z", "zz" ]
+    ],
+    "decodeTable": [
+      [ "zz", "z" ],  [ "ss", "sh" ], [ "kh", "wh" ], [ "nk", "ng" ], [ "jh", "j" ],
+      [ "ae", "e" ],  [ "au", "o" ],  [ "ii", "y" ],
+      [ "z", "th" ],  [ "x", "ch" ],  [ "j", "w" ]
+    ],
+    "insertApostrophe": true,
+    "minApostropheLength": 5
+  },
+
+  "contractions": {
+    "enabled": true,
+    "suffixes": [ "'d", "'ve", "n't", "'ll", "'re", "'m", "'s" ],
+    "expansions": [ "would", "have", "not", "will", "are", "am", "is" ]
+  },
+
+  "ui": {
+    "primaryColor": "#9b7fc4",
+    "primaryGlow": "#5a3a8a88",
+    "accentColor": "#4a2880",
+    "accentHover": "#5e38a0",
+    "backgroundColor": "#0d0d12",
+    "cardBackground": "#14141e",
+    "borderColor": "#2a2040",
+    "textColor": "#c8bfa8",
+    "mutedTextColor": "#7a7060",
+    "inputBackground": "#0a0a10",
+    "inputBorder": "#2e2550"
+  }
+}

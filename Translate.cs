@@ -18,8 +18,9 @@ namespace DrowTranslatascan
     public class TranslateFunction
     {
         private readonly ILogger _logger;
-        private const string Common = "Common";
-        private const string Drow = "Drow";
+        private static string Common => Program.Config.CommonName;
+        private static string Conlang => Program.Config.LanguageName;
+        private static string TableName => Program.Config.DatabaseTable;
 
         // Compiled regex patterns
         private static readonly Regex NonWhitespaceRegex = new Regex(@"\S", RegexOptions.Compiled);
@@ -87,7 +88,7 @@ namespace DrowTranslatascan
             if (!string.IsNullOrEmpty(ver))
             {
                 response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-                await response.WriteStringAsync("Welcome to Drow Translatascan.");
+                await response.WriteStringAsync($"Welcome to {Program.Config.ProjectTitle}.");
                 return response;
             }
 
@@ -98,7 +99,7 @@ namespace DrowTranslatascan
                 return response;
             }
 
-            if (lang != Drow && lang != Common)
+            if (lang != Conlang && lang != Common)
             {
                 response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
                 await response.WriteStringAsync($"Invalid language id: {lang}");
@@ -113,7 +114,7 @@ namespace DrowTranslatascan
                 using (SqliteConnection connection = new SqliteConnection($"Data Source={Program.DbPath};Mode=ReadOnly"))
                 {
                     connection.Open();
-                    result = DoTranslation(text, lang == Drow ? Drow : Common, lang == Drow ? Common : Drow, connection);
+                    result = DoTranslation(text, lang == Conlang ? Conlang : Common, lang == Conlang ? Common : Conlang, connection);
                 }
             }
             catch (Exception ex)
@@ -173,7 +174,7 @@ namespace DrowTranslatascan
                 return bad;
             }
 
-            if (request.Lang != Drow && request.Lang != Common)
+            if (request.Lang != Conlang && request.Lang != Common)
             {
                 var bad = req.CreateResponse(HttpStatusCode.BadRequest);
                 await bad.WriteAsJsonAsync(new ErrorResponse { Error = $"Invalid language id: {request.Lang}" });
@@ -185,7 +186,7 @@ namespace DrowTranslatascan
             {
                 using var connection = new SqliteConnection($"Data Source={Program.DbPath};Mode=ReadOnly");
                 connection.Open();
-                result = DoTranslation(request.Text, request.Lang == Drow ? Drow : Common, request.Lang == Drow ? Common : Drow, connection);
+                result = DoTranslation(request.Text, request.Lang == Conlang ? Conlang : Common, request.Lang == Conlang ? Common : Conlang, connection);
             }
             catch (Exception ex)
             {
@@ -283,18 +284,20 @@ namespace DrowTranslatascan
                     translated = TryWordForms(token, langTo, langFrom, results, connection);
                 }
 
-                if (!translated && langTo == Drow)
+                if (!translated && Program.Config.AlgorithmicConverterConfig.Enabled)
                 {
-                    // Algorithmic fallback: English → Drow
-                    results.Add(AlgorithmicConverter.ConvertToDrow(tokens[i]));
-                    translated = true;
-                }
-
-                if (!translated && langTo == Common)
-                {
-                    // Algorithmic fallback: Drow → English (cipher reverse)
-                    results.Add(AlgorithmicConverter.ConvertToCommon(tokens[i]));
-                    translated = true;
+                    if (langTo == Conlang)
+                    {
+                        // Algorithmic fallback: Common → Conlang
+                        results.Add(AlgorithmicConverter.ConvertToConlang(tokens[i]));
+                        translated = true;
+                    }
+                    else if (langTo == Common)
+                    {
+                        // Algorithmic fallback: Conlang → Common (cipher reverse)
+                        results.Add(AlgorithmicConverter.ConvertToCommon(tokens[i]));
+                        translated = true;
+                    }
                 }
 
                 if (!translated)
@@ -381,9 +384,9 @@ namespace DrowTranslatascan
                     {
                         results.Add(word);
                     }
-                    else if (langTo == Drow)
+                    else if (langTo == Conlang && Program.Config.AlgorithmicConverterConfig.Enabled)
                     {
-                        results.Add(AlgorithmicConverter.ConvertToDrow(splitToken));
+                        results.Add(AlgorithmicConverter.ConvertToConlang(splitToken));
                     }
                     else
                     {
@@ -470,7 +473,7 @@ namespace DrowTranslatascan
             string wordLower = word.ToLower();
 
             // Lookup in database
-            string query = $"SELECT {langTo}, Notes FROM drow_dictionary WHERE {langFrom} = @word";
+            string query = $"SELECT {langTo}, Notes FROM {TableName} WHERE {langFrom} = @word";
             using (var command = new SqliteCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@word", wordLower);
@@ -542,14 +545,16 @@ namespace DrowTranslatascan
         {
             List<string> forms = new List<string>();
 
-            if (langFrom == Drow)
+            if (langFrom == Conlang && Program.Config.Pluralization.Enabled)
             {
-                if (word.EndsWith("n"))
-                    forms.Add(word.Substring(0, word.Length - 1));
-                if (word.EndsWith("en"))
-                    forms.Add(word.Substring(0, word.Length - 2));
+                // Try stripping each configured unplural suffix
+                foreach (string suffix in Program.Config.Pluralization.UnpluralSuffixes)
+                {
+                    if (word.EndsWith(suffix) && word.Length > suffix.Length)
+                        forms.Add(word.Substring(0, word.Length - suffix.Length));
+                }
             }
-            else
+            else if (langFrom == Common)
             {
                 // Use Humanizer to singularize
                 string singular = word.Singularize(false);
@@ -567,16 +572,16 @@ namespace DrowTranslatascan
         /// </summary>
         static string Pluralize(string word, string langTo)
         {
-            if (langTo == Drow)
+            if (langTo == Conlang && Program.Config.Pluralization.Enabled)
             {
-                // Drow pluralization: vowel-ending → +n, consonant-ending → +en
+                // Conlang pluralization: vowel-ending → +vowelSuffix, consonant-ending → +consonantSuffix
                 if (TrailingVowelRegex.IsMatch(word))
                 {
-                    return word + "n";
+                    return word + Program.Config.Pluralization.VowelSuffix;
                 }
                 else
                 {
-                    return word + "en";
+                    return word + Program.Config.Pluralization.ConsonantSuffix;
                 }
             }
             else
@@ -593,12 +598,12 @@ namespace DrowTranslatascan
         /// </summary>
         static List<string> SplitContraction(string word, string langFrom)
         {
-            if (langFrom == Common)
+            if (langFrom == Common && Program.Config.Contractions.Enabled)
             {
-                string[] suffixes = { "'d", "'ve", "n't", "'ll", "'re", "'m", "'s" };
-                string[] expansions = { "would", "have", "not", "will", "are", "am", "is" };
+                string[] suffixes = Program.Config.Contractions.Suffixes;
+                string[] expansions = Program.Config.Contractions.Expansions;
 
-                for (int i = 0; i < suffixes.Length; i++)
+                for (int i = 0; i < suffixes.Length && i < expansions.Length; i++)
                 {
                     if (word.EndsWith(suffixes[i]))
                     {

@@ -9,8 +9,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 
+// Load language configuration from Data/language.json (falls back to Drow defaults if missing).
+string configPath = Path.Combine(AppContext.BaseDirectory, "Data", "language.json");
+Program.Config = DrowTranslatascan.LanguageConfig.Load(configPath);
+
 // Resolve and validate the database path before the host starts.
-Program.DbPath = Path.Combine(AppContext.BaseDirectory, "Data", "drow_dictionary.db");
+Program.DbPath = Path.Combine(AppContext.BaseDirectory, "Data", Program.Config.DatabaseFile);
 if (!File.Exists(Program.DbPath))
     throw new Exception($"Database file can't be found at {Program.DbPath}");
 
@@ -30,8 +34,8 @@ var host = new HostBuilder()
         {
             Info = new OpenApiInfo
             {
-                Title = "Drow Translatascan API",
-                Description = "Translates text between English (Common) and Drow.",
+                Title = $"{Program.Config.ProjectTitle} API",
+                Description = $"Translates text between {Program.Config.CommonName} and {Program.Config.LanguageName}.",
                 Version = "1.0.0",
             }
         });

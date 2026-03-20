@@ -3,78 +3,71 @@ using System.Text;
 namespace DrowTranslatascan
 {
     /// <summary>
-    /// Provides algorithmic (fallback) conversion between English and Drow for words
-    /// not found in the dictionary.
+    /// Provides algorithmic (fallback) conversion between the common language and
+    /// the constructed language for words not found in the dictionary.
     /// </summary>
     /// <remarks>
-    /// The encoder applies a grapheme-substitution table to an English word, then
-    /// inserts a single structural apostrophe at the first VC'V boundary to produce
-    /// the characteristic Drow word shape.  The decoder reverses this process.
+    /// The encoder applies a grapheme-substitution table to a common-language word, then
+    /// optionally inserts a single structural apostrophe at the first VC'V boundary to
+    /// produce the characteristic conlang word shape. The decoder reverses this process.
     /// These conversions are intentionally approximate — the dictionary should always
     /// be preferred where a match exists.
+    ///
+    /// All tables and settings are loaded from <c>Data/language.json</c> via
+    /// <see cref="Program.Config"/>, so adapting this converter to a new conlang
+    /// requires no C# changes.
     /// </remarks>
     public class AlgorithmicConverter
     {
-        // Encoding: English grapheme → Drow grapheme.
-        // Digraphs must precede their constituent single-char entries so the
-        // greedy left-to-right scan always picks the longest match first.
-        private static readonly (string From, string To)[] EncodeTable =
-        {
-            // Digraphs
-            ("th", "z"),   ("sh", "ss"),  ("ch", "x"),
-            ("wh", "kh"),  ("ng", "nk"),  ("ph", "f"),
-            // Vowels  (e→ae and o→au are the primary Drow vowel signals)
-            ("e",  "ae"),  ("o",  "au"),  ("y",  "ii"),
-            // Consonants
-            ("w",  "j"),   ("j",  "jh"),  ("c",  "k"),   ("z",  "zz"),
-        };
+        // Cached tuple arrays built from the config on first use.
+        private static (string From, string To)[]? _encodeTable;
+        private static (string From, string To)[]? _decodeTable;
 
-        // Decoding: Drow grapheme → English grapheme.
-        // Longer/more-specific entries before their prefixes.
-        private static readonly (string From, string To)[] DecodeTable =
-        {
-            ("zz", "z"),   ("ss", "sh"),  ("kh", "wh"),  ("nk", "ng"),  ("jh", "j"),
-            ("ae", "e"),   ("au", "o"),   ("ii", "y"),
-            ("z",  "th"),  ("x",  "ch"),  ("j",  "w"),
-        };
+        private static (string From, string To)[] EncodeTable
+            => _encodeTable ??= Program.Config.AlgorithmicConverterConfig.GetEncodeTuples();
+
+        private static (string From, string To)[] DecodeTable
+            => _decodeTable ??= Program.Config.AlgorithmicConverterConfig.GetDecodeTuples();
 
         /// <summary>
-        /// Converts an English word to its approximate Drow equivalent using the
+        /// Converts a common-language word to its approximate conlang equivalent using the
         /// grapheme-substitution table and apostrophe-insertion rules.
         /// </summary>
-        /// <param name="englishWord">The English word to convert. Must be non-empty.</param>
-        /// <returns>The algorithmically generated Drow word, with capitalization preserved.</returns>
-        public static string ConvertToDrow(string englishWord)
+        public static string ConvertToConlang(string commonWord)
         {
-            bool isFirstCap = char.IsUpper(englishWord[0]);
-            bool isAllCap   = IsAllCaps(englishWord);
+            bool isFirstCap = char.IsUpper(commonWord[0]);
+            bool isAllCap   = IsAllCaps(commonWord);
 
-            string word = StripNonAlpha(englishWord.ToLower());
-            if (word.Length == 0) return englishWord;
+            string word = StripNonAlpha(commonWord.ToLower());
+            if (word.Length == 0) return commonWord;
 
             string encoded = ApplyTable(word, EncodeTable);
-            string result  = InsertApostrophe(encoded);
+            string result = Program.Config.AlgorithmicConverterConfig.InsertApostrophe
+                ? InsertApostrophe(encoded)
+                : encoded;
             return RestoreCapitalization(result, isFirstCap, isAllCap);
         }
 
         /// <summary>
-        /// Converts a Drow word back to its approximate English equivalent by reversing
-        /// the grapheme substitutions.
+        /// Converts a conlang word back to its approximate common-language equivalent by
+        /// reversing the grapheme substitutions.
         /// </summary>
-        /// <param name="drowWord">The Drow word to convert. Must be non-empty.</param>
-        /// <returns>The algorithmically recovered English word, with capitalization preserved.</returns>
-        public static string ConvertToCommon(string drowWord)
+        public static string ConvertToCommon(string conlangWord)
         {
-            bool isFirstCap = char.IsUpper(drowWord[0]);
-            bool isAllCap   = IsAllCaps(drowWord);
+            bool isFirstCap = char.IsUpper(conlangWord[0]);
+            bool isAllCap   = IsAllCaps(conlangWord);
 
-            // Strip structural apostrophes the encoder inserted, then decode.
-            string word = StripApostrophesAndNormalize(drowWord);
-            if (word.Length == 0) return drowWord;
+            string word = StripApostrophesAndNormalize(conlangWord);
+            if (word.Length == 0) return conlangWord;
 
             string decoded = ApplyTable(word, DecodeTable);
             return RestoreCapitalization(decoded, isFirstCap, isAllCap);
         }
+
+        // Keep old method names as wrappers for backward compatibility (used by tests).
+
+        /// <summary>Alias for <see cref="ConvertToConlang"/> (backward compatibility).</summary>
+        public static string ConvertToDrow(string englishWord) => ConvertToConlang(englishWord);
 
         // ── Core helpers ────────────────────────────────────────────────────────
 
@@ -108,8 +101,7 @@ namespace DrowTranslatascan
 
         /// <summary>
         /// Returns <see langword="true"/> if position <paramref name="i"/> is the start
-        /// of an encoded Drow vowel cluster (<c>ae</c>, <c>au</c>, <c>ii</c>, <c>a</c>,
-        /// <c>i</c>, or <c>u</c>), and sets <paramref name="len"/> to 1 or 2 accordingly.
+        /// of an encoded vowel cluster and sets <paramref name="len"/> to 1 or 2 accordingly.
         /// </summary>
         private static bool IsEncodedVowel(string s, int i, out int len)
         {
@@ -126,36 +118,27 @@ namespace DrowTranslatascan
 
         /// <summary>
         /// Inserts one structural apostrophe before the second vowel group in an
-        /// already-encoded Drow word, producing the VC'V boundary characteristic
-        /// of authentic Drow orthography.  Words shorter than 5 characters are
-        /// returned unchanged.
+        /// already-encoded word, producing the VC'V boundary characteristic of the
+        /// conlang orthography.
         /// </summary>
         private static string InsertApostrophe(string encoded)
         {
-            if (encoded.Length < 5) return encoded;
+            int minLen = Program.Config.AlgorithmicConverterConfig.MinApostropheLength;
+            if (encoded.Length < minLen) return encoded;
 
             int i = 0;
-            // Skip leading consonants
             while (i < encoded.Length && !IsEncodedVowel(encoded, i, out _)) i++;
             if (i >= encoded.Length) return encoded;
 
-            // Skip first vowel group
             while (i < encoded.Length && IsEncodedVowel(encoded, i, out int vLen)) i += vLen;
             if (i >= encoded.Length) return encoded;
 
-            // Skip consonant cluster
             while (i < encoded.Length && !IsEncodedVowel(encoded, i, out _)) i++;
             if (i >= encoded.Length || encoded.Length - i < 2) return encoded;
 
             return encoded.Substring(0, i) + '\'' + encoded.Substring(i);
         }
 
-        /// <summary>
-        /// Restores the original capitalization pattern of a word after conversion.
-        /// If <paramref name="isAllCap"/> is <see langword="true"/>, the whole word is
-        /// uppercased; if only <paramref name="isFirstCap"/> is <see langword="true"/>,
-        /// the first letter is capitalized.
-        /// </summary>
         private static string RestoreCapitalization(string word, bool isFirstCap, bool isAllCap)
         {
             if (isAllCap) return word.ToUpper();
@@ -170,11 +153,6 @@ namespace DrowTranslatascan
             return word;
         }
 
-        /// <summary>
-        /// Returns <see langword="true"/> if <paramref name="word"/> contains more than
-        /// one letter and every letter is uppercase (e.g. <c>"HELLO"</c>).
-        /// Single uppercase letters such as <c>"I"</c> are intentionally excluded.
-        /// </summary>
         private static bool IsAllCaps(string word)
         {
             int letterCount = 0;
@@ -189,7 +167,6 @@ namespace DrowTranslatascan
             return letterCount > 1;
         }
 
-        /// <summary>Removes all non-letter characters from <paramref name="word"/>.</summary>
         private static string StripNonAlpha(string word)
         {
             var sb = new StringBuilder(word.Length);
@@ -198,10 +175,6 @@ namespace DrowTranslatascan
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Lowercases <paramref name="word"/> and removes all apostrophes, preparing a
-        /// Drow word for decoding through the substitution table.
-        /// </summary>
         private static string StripApostrophesAndNormalize(string word)
         {
             var sb = new StringBuilder(word.Length);

@@ -1,6 +1,10 @@
 using Microsoft.Data.Sqlite;
 using DrowTranslatascan;
 
+// Load language config so the AlgorithmicConverter tables are available.
+string configPath = Path.Combine("..", "Data", "language.json");
+Program.Config = LanguageConfig.Load(configPath);
+
 string dbPath = "../Data/drow_dictionary.db";
 
 int passed = 0;

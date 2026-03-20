@@ -10,6 +10,7 @@ An Azure Function that translates text between English (Common) and the Drow lan
 - Web UI served directly from the function.
 - REST API with plain-text and JSON endpoints.
 - Returns plain text responses for easy integration with applications like Second Life scripts.
+- **Configurable for any constructed language** — all language-specific settings live in a single `Data/language.json` file.
 
 ## Prerequisites
 
@@ -132,6 +133,13 @@ cd drowtest
 dotnet run
 ```
 
+## Build Your Own Conlang Translator
+
+Want to adapt this project for your own constructed language? Everything language-specific is driven by `Data/language.json` — no C# changes required for most conlangs.
+
+- **[TUTORIAL.md](TUTORIAL.md)** — Step-by-step guide: fork the project, edit the config, provide a dictionary, and run. Includes a worked example building a "Sylvan" translator from scratch.
+- **[LLM_CONLANG_GUIDE.md](LLM_CONLANG_GUIDE.md)** — Instruction file for LLM assistants (Claude, ChatGPT, etc.) helping you design your conlang's rules, build a dictionary, and configure the translator. Feed this file to your AI assistant to get structured help with phonology, pluralization, cipher tables, and vocabulary generation.
+
 ## Dictionary Maintenance
 
 The word list lives in `Data/drow_dictionary.csv` and is compiled into `Data/drow_dictionary.db` (SQLite). See [`scripts/README.md`](scripts/README.md) for full instructions on finding missing words and adding new entries.
@@ -166,18 +174,21 @@ This can be configured under **Configuration → Application settings** in your 
 
 ```
 DrowTranslatascan/
-├── Data/                        # Dictionary (CSV source + compiled SQLite DB)
+├── Data/                        # Dictionary (CSV + SQLite DB) and language.json config
 ├── analysis/                    # Corpus analysis scripts and output (phonotactics)
 ├── drowtest/                    # Test runner project
 ├── lsl/                         # Second Life LSL script example
 ├── scripts/                     # Dictionary maintenance scripts (see scripts/README.md)
 ├── tel'mithrim/                 # Original unmodified Tel'Mithrim word list and license
-├── AlgorithmicConverter.cs      # Fallback algorithmic English↔Drow conversion
-├── HomeFunction.cs              # Web UI (dark-fantasy themed HTML)
+├── AlgorithmicConverter.cs      # Fallback algorithmic conversion (config-driven)
+├── HomeFunction.cs              # Web UI (themed HTML, config-driven)
+├── LanguageConfig.cs            # Language configuration model (deserialized from language.json)
 ├── Program.cs                   # Host configuration and startup
-├── ProgramState.cs              # Shared program state (e.g. DB path)
+├── ProgramState.cs              # Shared program state (DB path, language config)
 ├── Translate.cs                 # Translation logic and HTTP trigger functions
-└── TranslateModels.cs           # Request/response model types
+├── TranslateModels.cs           # Request/response model types
+├── TUTORIAL.md                  # Guide: adapt this project for your own conlang
+└── LLM_CONLANG_GUIDE.md         # Instructions for LLM assistants helping build a conlang
 ```
 
 ## License

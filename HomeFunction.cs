@@ -6,15 +6,13 @@ using System.Net;
 namespace DrowTranslatascan
 {
     /// <summary>
-    /// Azure Function that serves the dark-fantasy themed web UI for the Drow Translatascan.
+    /// Azure Function that serves the themed web UI for the translator.
     /// Responds to <c>GET /api/Home</c> with a self-contained HTML page.
+    /// All text and colours are driven by <see cref="Program.Config"/>.
     /// </summary>
     public class HomeFunction
     {
         /// <summary>Returns the translator web UI as an HTML page.</summary>
-        /// <param name="req">The incoming HTTP request.</param>
-        /// <param name="executionContext">Azure Functions execution context.</param>
-        /// <returns>HTTP 200 response containing the HTML page.</returns>
         [Function("Home")]
         [OpenApiOperation(operationId: "Home", tags: new[] { "ui" }, Summary = "Translator web UI")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/html", bodyType: typeof(string), Description = "HTML page")]
@@ -24,24 +22,30 @@ namespace DrowTranslatascan
         {
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "text/html; charset=utf-8");
-            await response.WriteStringAsync(Html);
+            await response.WriteStringAsync(BuildHtml());
             return response;
         }
 
-        /// <summary>The complete HTML page served by <see cref="Run"/>.</summary>
-        internal static readonly string Html = """
+        /// <summary>Builds the complete HTML page using values from the language config.</summary>
+        internal static string BuildHtml()
+        {
+            var c = Program.Config;
+            var ui = c.Ui;
+
+            // Using $$""" so single { } are literal (for CSS/JS) and {{ }} are interpolation holes.
+            return $$"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
               <meta charset="UTF-8" />
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>Drow Translatascan</title>
+              <title>{{Escape(c.ProjectTitle)}}</title>
               <style>
                 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
                 body {
-                  background: #0d0d12;
-                  color: #c8bfa8;
+                  background: {{ui.BackgroundColor}};
+                  color: {{ui.TextColor}};
                   font-family: 'Georgia', serif;
                   min-height: 100vh;
                   display: flex;
@@ -58,20 +62,20 @@ namespace DrowTranslatascan
                 header h1 {
                   font-size: 2.2rem;
                   letter-spacing: 0.08em;
-                  color: #9b7fc4;
-                  text-shadow: 0 0 18px #5a3a8a88;
+                  color: {{ui.PrimaryColor}};
+                  text-shadow: 0 0 18px {{ui.PrimaryGlow}};
                 }
 
                 header p {
                   margin-top: 0.5rem;
                   font-size: 0.95rem;
-                  color: #7a7060;
+                  color: {{ui.MutedTextColor}};
                   font-style: italic;
                 }
 
                 .card {
-                  background: #14141e;
-                  border: 1px solid #2a2040;
+                  background: {{ui.CardBackground}};
+                  border: 1px solid {{ui.BorderColor}};
                   border-radius: 8px;
                   padding: 2rem;
                   width: 100%;
@@ -91,8 +95,8 @@ namespace DrowTranslatascan
                 textarea {
                   width: 100%;
                   height: 120px;
-                  background: #0a0a10;
-                  border: 1px solid #2e2550;
+                  background: {{ui.InputBackground}};
+                  border: 1px solid {{ui.InputBorder}};
                   border-radius: 5px;
                   color: #d4cbb8;
                   font-size: 1rem;
@@ -138,7 +142,7 @@ namespace DrowTranslatascan
 
                 .translate-btn {
                   margin-left: auto;
-                  background: #4a2880;
+                  background: {{ui.AccentColor}};
                   border: none;
                   border-radius: 5px;
                   color: #e0d0ff;
@@ -150,7 +154,7 @@ namespace DrowTranslatascan
                   transition: background 0.15s;
                 }
 
-                .translate-btn:hover { background: #5e38a0; }
+                .translate-btn:hover { background: {{ui.AccentHover}}; }
                 .translate-btn:disabled { background: #2a1a40; color: #5a4a70; cursor: default; }
 
                 .output-section { margin-top: 1.5rem; }
@@ -158,8 +162,8 @@ namespace DrowTranslatascan
                 .output-box {
                   width: 100%;
                   min-height: 90px;
-                  background: #0a0a10;
-                  border: 1px solid #2e2550;
+                  background: {{ui.InputBackground}};
+                  border: 1px solid {{ui.InputBorder}};
                   border-radius: 5px;
                   color: #d4cbb8;
                   font-size: 1rem;
@@ -180,13 +184,13 @@ namespace DrowTranslatascan
                 }
 
                 footer a { color: #5a4a80; text-decoration: none; }
-                footer a:hover { color: #9b7fc4; }
+                footer a:hover { color: {{ui.PrimaryColor}}; }
               </style>
             </head>
             <body>
               <header>
-                <h1>Drow Translatascan</h1>
-                <p>Translate between Common and the tongue of the dark elves</p>
+                <h1>{{Escape(c.ProjectTitle)}}</h1>
+                <p>{{Escape(c.Subtitle)}}</p>
               </header>
 
               <div class="card">
@@ -195,11 +199,11 @@ namespace DrowTranslatascan
 
                 <div class="controls">
                   <div class="direction-group" role="group" aria-label="Translation direction">
-                    <button class="dir-btn active" id="btn-to-drow" onclick="setDir('Drow')">
-                      Common → Drow
+                    <button class="dir-btn active" id="btn-to-conlang" onclick="setDir('conlang')">
+                      {{Escape(c.CommonName)}} &#8594; {{Escape(c.LanguageName)}}
                     </button>
-                    <button class="dir-btn" id="btn-to-common" onclick="setDir('Common')">
-                      Drow → Common
+                    <button class="dir-btn" id="btn-to-common" onclick="setDir('common')">
+                      {{Escape(c.LanguageName)}} &#8594; {{Escape(c.CommonName)}}
                     </button>
                   </div>
                   <button class="translate-btn" id="translate-btn" onclick="doTranslate()">Translate</button>
@@ -220,12 +224,14 @@ namespace DrowTranslatascan
               </footer>
 
               <script>
-                let targetLang = 'Drow';
+                const conlangName = '{{EscapeJs(c.LanguageName)}}';
+                const commonName = '{{EscapeJs(c.CommonName)}}';
+                let targetLang = conlangName;
 
-                function setDir(lang) {
-                  targetLang = lang;
-                  document.getElementById('btn-to-drow').classList.toggle('active', lang === 'Drow');
-                  document.getElementById('btn-to-common').classList.toggle('active', lang === 'Common');
+                function setDir(dir) {
+                  targetLang = dir === 'conlang' ? conlangName : commonName;
+                  document.getElementById('btn-to-conlang').classList.toggle('active', dir === 'conlang');
+                  document.getElementById('btn-to-common').classList.toggle('active', dir === 'common');
                 }
 
                 document.getElementById('input-text').addEventListener('keydown', function(e) {
@@ -270,5 +276,12 @@ namespace DrowTranslatascan
             </body>
             </html>
             """;
+        }
+
+        private static string Escape(string s) =>
+            System.Net.WebUtility.HtmlEncode(s);
+
+        private static string EscapeJs(string s) =>
+            s.Replace("\\", "\\\\").Replace("'", "\\'");
     }
 }
